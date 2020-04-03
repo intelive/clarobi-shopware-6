@@ -1,0 +1,22 @@
+{
+    "name": "clarobi/clarobi-plugin",
+    "description": "Clarobi API plugin for analytics and statistics",
+    "type": "shopware-platform-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Interlive Metrics"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Clarobi\\": "src/"
+        }
+    },
+    "extra": {
+        "shopware-plugin-class": "Clarobi\\Clarobi",
+        "label": {
+            "en-GB": "Clarobi API plugin"
+        }
+    }
+}
