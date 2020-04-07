@@ -6,7 +6,31 @@
 
     <services>
 
+        <service id="Clarobi\Core\Api\ClarobiProductController">
+            <argument type="service" id="product.repository"/>
+            <tag name="controller.service_arguments"/>
+        </service>
 
+        <service id="Clarobi\Core\Api\ClarobiCustomerController">
+            <argument type="service" id="customer.repository"/>
+            <tag name="controller.service_arguments"/>
+        </service>
+
+        <service id="Clarobi\Core\Api\ClarobiOrderController">
+            <argument type="service" id="order.repository"/>
+            <tag name="controller.service_arguments"/>
+        </service>
+
+        <service id="Clarobi\Core\Api\ClarobiProductImageController">
+            <argument type="service" id="product.repository"/>
+            <tag name="controller.service_arguments"/>
+        </service>
+
+<!--todo: service for: invoice - order with status complete-->
+<!--todo: service for: credit memo - order refunded-->
+<!--todo: service for: abandoned cart - cart without order/saved in session-->
+<!--todo: service for: product counts-->
+<!--todo: service for: data counters-->
 
     </services>
 </container>
