@@ -1,6 +1,7 @@
 {
-    "name": "clarobi/clarobi-plugin",
+    "name": "clarobi/clarobi",
     "description": "Clarobi API plugin for analytics and statistics",
+    "version": "v1.0.0",
     "type": "shopware-platform-plugin",
     "license": "MIT",
     "authors": [
