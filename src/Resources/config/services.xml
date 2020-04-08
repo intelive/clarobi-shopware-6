@@ -6,31 +6,78 @@
 
     <services>
 
-        <service id="Clarobi\Core\Api\ClarobiProductController">
+        <!--Entity-->
+        <service id="Clarobi\Custom\CustomEntityDefinition">
+            <tag name="shopware.entity.definition" entity="custom_entity"/>
+        </service>
+
+        <!--Service-->
+        <service id="Clarobi\Service\ClarobiConfigService">
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+        </service>
+
+        <!--Controllers-->
+        <service id="Clarobi\Core\Api\DemoController" public="true">
             <argument type="service" id="product.repository"/>
+            <argument type="service" id="Clarobi\Service\ClarobiConfigService"/>
             <tag name="controller.service_arguments"/>
         </service>
 
-        <service id="Clarobi\Core\Api\ClarobiCustomerController">
+        <service id="Clarobi\Core\Api\ClarobiProductController" public="true">
+            <argument type="service" id="product.repository"/>
+            <argument type="service" id="Clarobi\Service\ClarobiConfigService"/>
+            <tag name="controller.service_arguments"/>
+        </service>
+
+        <service id="Clarobi\Core\Api\ClarobiCustomerController" public="true">
             <argument type="service" id="customer.repository"/>
+            <argument type="service" id="Clarobi\Service\ClarobiConfigService"/>
             <tag name="controller.service_arguments"/>
         </service>
 
-        <service id="Clarobi\Core\Api\ClarobiOrderController">
+        <service id="Clarobi\Core\Api\ClarobiOrderController" public="true">
             <argument type="service" id="order.repository"/>
+            <argument type="service" id="Clarobi\Service\ClarobiConfigService"/>
             <tag name="controller.service_arguments"/>
         </service>
 
-        <service id="Clarobi\Core\Api\ClarobiProductImageController">
+        <service id="Clarobi\Core\Api\ClarobiInvoiceController" public="true">
+            <argument type="service" id="document.repository"/>
+            <argument type="service" id="document_type.repository"/>
+            <argument type="service" id="Clarobi\Service\ClarobiConfigService"/>
+
+            <!--            <argument type="service" id="Shopware\Core\Checkout\Document\DocumentService"/>-->
+            <!--            <call method="setContainer">-->
+            <!--                <argument type="service" id="service_container"/>-->
+            <!--            </call>-->
+        </service>
+
+        <service id="Clarobi\Core\Api\ClarobiCreditNoteController" public="true">
+            <argument type="service" id="document.repository"/>
+            <argument type="service" id="document_type.repository"/>
+            <argument type="service" id="Clarobi\Service\ClarobiConfigService"/>
+        </service>
+
+        <service id="Clarobi\Core\Api\ClarobiAbandonedCartController" public="true">
+            <argument type="service" id="Clarobi\Service\ClarobiConfigService"/>
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+        </service>
+
+        <service id="Clarobi\Core\Api\ClarobiProductCountsController" public="true">
+            <argument type="service" id="Clarobi\Service\ClarobiConfigService"/>
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+        </service>
+
+        <service id="Clarobi\Core\Api\ClarobiDataCountersController" public="true">
+            <argument type="service" id="Clarobi\Service\ClarobiConfigService"/>
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+        </service>
+
+        <!--todo: verify arguments-->
+        <service id="Clarobi\Core\Api\ClarobiProductImageController" public="true">
             <argument type="service" id="product.repository"/>
             <tag name="controller.service_arguments"/>
         </service>
-
-<!--todo: service for: invoice - order with status complete-->
-<!--todo: service for: credit memo - order refunded-->
-<!--todo: service for: abandoned cart - cart without order/saved in session-->
-<!--todo: service for: product counts-->
-<!--todo: service for: data counters-->
 
     </services>
 </container>
