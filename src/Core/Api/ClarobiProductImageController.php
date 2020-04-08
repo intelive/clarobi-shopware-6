@@ -12,7 +12,7 @@ use Symfony\Component\Routing\Annotation\Route;
 /**
  * Class ClarobiProductImageController
  *
- * @RouteScope(scopes={"storefront-api"})
+ * @RouteScope(scopes={"storefront"})
  * @package Clarobi\Core\Api
  */
 class ClarobiProductImageController extends AbstractController

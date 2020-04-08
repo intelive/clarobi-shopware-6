@@ -3,11 +3,13 @@
 namespace Clarobi\Core\Api;
 
 use Clarobi\Service\ClarobiConfig;
+use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\RangeFilter;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -40,23 +42,33 @@ class ClarobiOrderController extends AbstractController
     {
         $context = Context::createDefaultContext();
         $criteria = new Criteria();
-        $criteria->setLimit(2);
-        $orderIds = $this->orderRepository->searchIds($criteria, $context)->getIds();
-//        $orderIds = $this->orderRepository->search($criteria, $context)->get('auto_increment');
-
-        if (\count($orderIds) === 0) {
-            return new JsonResponse(
-                ['Please create orders before by using this route.'],
-                Response::HTTP_NO_CONTENT
-            );
-        }
-
-//        return new JsonResponse($orderIds, Response::HTTP_OK);
-
+        $criteria->setLimit(10)
+            ->addFilter(new RangeFilter('autoIncrement', ['gte' => 1]));
 
         /** @var EntityCollection $entities */
         $entities = $this->orderRepository->search($criteria, $context);
 
-        return new JsonResponse($entities, Response::HTTP_OK);
+        /**
+         * @todo map entities
+         * @todo catch errors
+         * @todo return empty data
+         * @todo encode data
+         */
+        if (($entities->count()) === 0) {
+            return new JsonResponse(
+                ['No orders found matching given criteria.'],
+                Response::HTTP_OK
+            );
+        }
+
+        $mappedEntities = [];
+        /** @var OrderEntity $element */
+        foreach ($entities->getElements() as $element) {
+            $mappedEntities[$element->getId()] = [
+                'entityNumber' => $element->getOrderNumber(),
+                'autoIncrement' => $element->getAutoIncrement()
+            ];
+        }
+        return new JsonResponse($mappedEntities, Response::HTTP_OK);
     }
 }

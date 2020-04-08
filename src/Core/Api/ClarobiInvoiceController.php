@@ -3,6 +3,7 @@
 namespace Clarobi\Core\Api;
 
 use Clarobi\Service\ClarobiConfig;
+use Shopware\Core\Checkout\Document\DocumentService;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
@@ -24,13 +25,36 @@ use Shopware\Core\Framework\Context;
 class ClarobiInvoiceController extends AbstractController
 {
     /**
+     * @var DocumentService
+     */
+    protected $documentService;
+
+    /**
      * @var EntityRepositoryInterface
      */
-    protected $invoiceRepository;
+    private $documentRepository;
 
-    public function __construct(EntityRepositoryInterface $invoiceRepository)
+    /**
+     * @var EntityRepositoryInterface
+     */
+    private $documentTypeRepository;
+
+    /**
+     * @todo delete DocumentService if not needed
+     *
+     * ClarobiInvoiceController constructor.
+     * @param EntityRepositoryInterface $documentRepository
+     * @param EntityRepositoryInterface $documentTypeRepository
+     */
+    public function __construct(
+//        DocumentService $documentService,
+        EntityRepositoryInterface $documentRepository,
+        EntityRepositoryInterface $documentTypeRepository
+    )
     {
-        $this->invoiceRepository = $invoiceRepository;
+//        $this->documentService = $documentService;
+        $this->documentRepository = $documentRepository;
+        $this->documentTypeRepository = $documentTypeRepository;
     }
 
     /**
@@ -38,6 +62,15 @@ class ClarobiInvoiceController extends AbstractController
      */
     public function listAction(): Response
     {
+        $context = Context::createDefaultContext();
+        $criteria = new Criteria();
+        $criteria->setLimit(10)
+            ->addFilter(new EqualsFilter('documentType.technicalName', 'invoice'));
 
+        /** @var EntityCollection $entities */
+        $entities = $this->documentRepository->search($criteria, $context);
+
+        return new JsonResponse($entities, Response::HTTP_OK);
+//        CriteriaFactory.equals('documentType.technicalName', 'invoice');
     }
 }

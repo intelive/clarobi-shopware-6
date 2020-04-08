@@ -3,11 +3,12 @@
 namespace Clarobi\Core\Api;
 
 use Clarobi\Service\ClarobiConfig;
+use Shopware\Core\Content\Product\ProductEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\RangeFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -40,24 +41,34 @@ class ClarobiProductController extends AbstractController
     {
         $context = Context::createDefaultContext();
         $criteria = new Criteria();
-        $criteria->setLimit(2)
-            ->addFilter(new EqualsFilter('active', true));
-        $productIds = $this->productRepository->searchIds($criteria, $context)->getIds();
-//        $productIds = $this->productRepository->search($criteria, $context)->get('auto_increment');
-
-        if (\count($productIds) === 0) {
-            return new JsonResponse(
-                ['Please create products before by using this route.'],
-                Response::HTTP_NO_CONTENT
-            );
-        }
-
-//        return new JsonResponse($productIds, Response::HTTP_OK);
-
+        $criteria->setLimit(10)
+            ->addFilter(new RangeFilter('autoIncrement', ['gte' => 1]))
+        ->addSorting(new FieldSorting('autoIncrement'));
 
         /** @var EntityCollection $entities */
         $entities = $this->productRepository->search($criteria, $context);
 
-        return new JsonResponse($entities, Response::HTTP_OK);
+        /**
+         * @todo map entities
+         * @todo catch errors
+         * @todo return empty data
+         * @todo encode data
+         */
+        if (($entities->count()) === 0) {
+            return new JsonResponse(
+                ['No orders found matching given criteria.'],
+                Response::HTTP_OK
+            );
+        }
+
+        $mappedEntities = [];
+        /** @var ProductEntity $element */
+        foreach ($entities->getElements() as $element) {
+            $mappedEntities[$element->getId()] = [
+                'name' => $element->getName(),
+                'autoIncrement' => $element->getAutoIncrement()
+            ];
+        }
+        return new JsonResponse($mappedEntities, Response::HTTP_OK);
     }
 }

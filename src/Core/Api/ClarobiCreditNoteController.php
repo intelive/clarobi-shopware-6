@@ -2,41 +2,59 @@
 
 namespace Clarobi\Core\Api;
 
-use Clarobi\Service\ClarobiConfig;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Core\Framework\Context;
 
 /**
- * Class ClarobiCreditMemoController
+ * Class ClarobiCreditNoteController
  *
  * @RouteScope(scopes={"storefront"})
  * @package Clarobi\Core\Api
  */
-class ClarobiCreditMemoController extends AbstractController
+class ClarobiCreditNoteController extends AbstractController
 {
     /**
      * @var EntityRepositoryInterface
      */
-    protected $entityRepository;
+    private $documentRepository;
 
-    public function __construct(EntityRepositoryInterface $entityRepository)
+    /**
+     * @var EntityRepositoryInterface
+     */
+    private $documentTypeRepository;
+
+    public function __construct(
+        EntityRepositoryInterface $documentRepository,
+        EntityRepositoryInterface $documentTypeRepository
+    )
     {
-        $this->entityRepository = $entityRepository;
+        $this->documentRepository = $documentRepository;
+        $this->documentTypeRepository = $documentTypeRepository;
     }
 
     /**
      * @Route("/clarobi/creditmemo", name="clarobi.creditmemo.list")
+     * @param Request $request
+     * @return JsonResponse
      */
-    public function listAction(): Response
+    public function listAction(Request $request): JsonResponse
     {
+        $context = Context::createDefaultContext();
+        $criteria = new Criteria();
+        $criteria->setLimit(10)
+            ->addFilter(new EqualsFilter('documentType.technicalName', 'credit_note'));
+
+        /** @var EntityCollection $entities */
+        $entities = $this->documentRepository->search($criteria, $context);
+
+        return new JsonResponse($entities, Response::HTTP_OK);
     }
 }

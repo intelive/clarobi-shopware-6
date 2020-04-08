@@ -2,18 +2,14 @@
 
 namespace Clarobi\Core\Api;
 
-use Clarobi\Service\ClarobiConfig;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Doctrine\DBAL\Connection;
+use Shopware\Core\Checkout\Cart\Cart;
+use Clarobi\Service\ClarobiConfigService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Shopware\Core\Framework\Context;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Shopware\Core\Framework\Routing\Annotation\RouteScope;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 /**
  * Class ClarobiAbandonedCartController
@@ -24,13 +20,19 @@ use Shopware\Core\Framework\Context;
 class ClarobiAbandonedCartController extends AbstractController
 {
     /**
-     * @var EntityRepositoryInterface
+     * @var Connection
      */
-    protected $entityRepository;
+    protected $connection;
 
-    public function __construct(EntityRepositoryInterface $entityRepository)
+    /**
+     * @var ClarobiConfigService
+     */
+    protected $config;
+
+    public function __construct(ClarobiConfigService $config, Connection $connection)
     {
-        $this->entityRepository = $entityRepository;
+        $this->config = $config;
+        $this->connection = $connection;
     }
 
     /**
@@ -38,5 +40,25 @@ class ClarobiAbandonedCartController extends AbstractController
      */
     public function listAction(): Response
     {
+        $resultStatement = $this->connection->executeQuery('
+            SELECT * FROM `cart`
+            WHERE `created_at` > DATE_SUB(DATE(NOW()), INTERVAL 2 DAY);
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ');
+
+        $results = $resultStatement->fetchAll();
+        if (count($results) === 0) {
+            die('nothing');
+        }
+
+        /** @var Cart[] $carts */
+        $carts = [];
+        foreach ($results as $result) {
+            /** @var Cart $cart */
+            $cart = unserialize($result['cart']);
+            $carts[] = $cart;
+        }
+
+        return new JsonResponse($carts, Response::HTTP_OK);
     }
 }
