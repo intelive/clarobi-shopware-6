@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Custom;
+namespace Clarobi\Core\Content\Custom;
 
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 
