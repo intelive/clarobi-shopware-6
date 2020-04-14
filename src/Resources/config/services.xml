@@ -54,20 +54,6 @@
             <tag name="controller.service_arguments"/>
         </service>
 
-        <!--todo : delete-->
-        <!--        <service id="Clarobi\Core\Api\ClarobiInvoiceController" public="true">-->
-        <!--            <argument type="service" id="document.repository"/>-->
-        <!--            <argument type="service" id="document_type.repository"/>-->
-        <!--            <argument type="service" id="clarobi.service.config"/>-->
-        <!--            <argument type="service" id="clarobi.service.encode_response"/>-->
-        <!--        </service>-->
-        <!--        <service id="Clarobi\Core\Api\ClarobiCreditNoteController" public="true">-->
-        <!--            <argument type="service" id="document.repository"/>-->
-        <!--            <argument type="service" id="document_type.repository"/>-->
-        <!--            <argument type="service" id="clarobi.service.config"/>-->
-        <!--            <argument type="service" id="clarobi.service.encode_response"/>-->
-        <!--        </service>-->
-
         <service id="Clarobi\Core\Api\ClarobiAbandonedCartController" public="true">
             <argument type="service" id="Doctrine\DBAL\Connection"/>
             <argument type="service" id="clarobi.service.config"/>
@@ -95,6 +81,11 @@
         <service id="Clarobi\Core\Api\ClarobiProductImageController" public="true">
             <argument type="service" id="product.repository"/>
             <tag name="controller.service_arguments"/>
+        </service>
+
+        <!--Helpers-->
+        <service id="Clarobi\Utils\ProductCountsHelper">
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
         </service>
 
     </services>
