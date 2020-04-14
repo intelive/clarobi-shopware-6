@@ -3,6 +3,8 @@
 namespace Clarobi\Core\Api;
 
 use Clarobi\Service\ClarobiConfig;
+use Clarobi\Service\ClarobiConfigService;
+use Clarobi\Service\EncodeResponseService;
 use Shopware\Core\Checkout\Document\DocumentService;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
@@ -40,28 +42,47 @@ class ClarobiInvoiceController extends AbstractController
     private $documentTypeRepository;
 
     /**
+     * @var EncodeResponseService
+     */
+    protected $encodeResponse;
+
+    /**
+     * @var ClarobiConfigService
+     */
+    protected $configService;
+
+    /**
+     * @param EntityRepositoryInterface $documentRepository
+     * @param EntityRepositoryInterface $documentTypeRepository
      * @todo delete DocumentService if not needed
      *
      * ClarobiInvoiceController constructor.
-     * @param EntityRepositoryInterface $documentRepository
-     * @param EntityRepositoryInterface $documentTypeRepository
      */
     public function __construct(
 //        DocumentService $documentService,
         EntityRepositoryInterface $documentRepository,
-        EntityRepositoryInterface $documentTypeRepository
+        EntityRepositoryInterface $documentTypeRepository,
+        ClarobiConfigService $configService,
+        EncodeResponseService $responseService
     )
     {
 //        $this->documentService = $documentService;
         $this->documentRepository = $documentRepository;
         $this->documentTypeRepository = $documentTypeRepository;
+        $this->configService = $configService;
+        $this->encodeResponse = $responseService;
     }
 
     /**
+     * @todo delete - DocumentsController will be used for invoice and credit note
+     *
      * @Route("/clarobi/invoice", name="clarobi.invoice.list")
      */
     public function listAction(): Response
     {
+        // orderDocuments endpoint
+        // delete invoice and
+
         $context = Context::createDefaultContext();
         $criteria = new Criteria();
         $criteria->setLimit(10)
@@ -71,6 +92,6 @@ class ClarobiInvoiceController extends AbstractController
         $entities = $this->documentRepository->search($criteria, $context);
 
         return new JsonResponse($entities, Response::HTTP_OK);
-//        CriteriaFactory.equals('documentType.technicalName', 'invoice');
+//        return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::ENTITY_NAME));
     }
 }

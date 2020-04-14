@@ -21,75 +21,77 @@
         <service id="Clarobi\Subscriber\ExampleSubscriber">
             <tag name="kernel.event_subscriber"/>
         </service>
+        <!--todo : add subscriber for product page and cart update-->
 
         <!--Service-->
         <service class="Clarobi\Service\ClarobiConfigService" id="clarobi.service.config" public="true">
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
         </service>
 
-        <!--todo: add encode service to controllers-->
-        <service class="Clarobi\Utils\EncodeResponse" id="clarobi.utils.encode_response">
+        <service class="Clarobi\Service\EncodeResponseService" id="clarobi.service.encode_response" public="true">
             <argument id="clarobi.service.config" type="service"/>
         </service>
 
         <!--Controllers-->
-        <service id="Clarobi\Core\Api\DemoController" public="true">
-            <argument type="service" id="product.repository"/>
-            <argument type="service" id="clarobi.service.config"/>
-            <tag name="controller.service_arguments"/>
-        </service>
-
         <service id="Clarobi\Core\Api\ClarobiProductController" public="true">
             <argument type="service" id="product.repository"/>
             <argument type="service" id="clarobi.service.config"/>
+            <argument type="service" id="clarobi.service.encode_response"/>
             <tag name="controller.service_arguments"/>
         </service>
 
         <service id="Clarobi\Core\Api\ClarobiCustomerController" public="true">
             <argument type="service" id="customer.repository"/>
             <argument type="service" id="clarobi.service.config"/>
+            <argument type="service" id="clarobi.service.encode_response"/>
             <tag name="controller.service_arguments"/>
         </service>
 
         <service id="Clarobi\Core\Api\ClarobiOrderController" public="true">
             <argument type="service" id="order.repository"/>
             <argument type="service" id="clarobi.service.config"/>
+            <argument type="service" id="clarobi.service.encode_response"/>
             <tag name="controller.service_arguments"/>
         </service>
 
-        <service id="Clarobi\Core\Api\ClarobiInvoiceController" public="true">
-            <argument type="service" id="document.repository"/>
-            <argument type="service" id="document_type.repository"/>
-            <argument type="service" id="clarobi.service.config"/>
-
-            <!--            <argument type="service" id="Shopware\Core\Checkout\Document\DocumentService"/>-->
-            <!--            <call method="setContainer">-->
-            <!--                <argument type="service" id="service_container"/>-->
-            <!--            </call>-->
-        </service>
-
-        <service id="Clarobi\Core\Api\ClarobiCreditNoteController" public="true">
-            <argument type="service" id="document.repository"/>
-            <argument type="service" id="document_type.repository"/>
-            <argument type="service" id="clarobi.service.config"/>
-        </service>
+        <!--todo : delete-->
+        <!--        <service id="Clarobi\Core\Api\ClarobiInvoiceController" public="true">-->
+        <!--            <argument type="service" id="document.repository"/>-->
+        <!--            <argument type="service" id="document_type.repository"/>-->
+        <!--            <argument type="service" id="clarobi.service.config"/>-->
+        <!--            <argument type="service" id="clarobi.service.encode_response"/>-->
+        <!--        </service>-->
+        <!--        <service id="Clarobi\Core\Api\ClarobiCreditNoteController" public="true">-->
+        <!--            <argument type="service" id="document.repository"/>-->
+        <!--            <argument type="service" id="document_type.repository"/>-->
+        <!--            <argument type="service" id="clarobi.service.config"/>-->
+        <!--            <argument type="service" id="clarobi.service.encode_response"/>-->
+        <!--        </service>-->
 
         <service id="Clarobi\Core\Api\ClarobiAbandonedCartController" public="true">
-            <argument type="service" id="clarobi.service.config"/>
             <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <argument type="service" id="clarobi.service.config"/>
+            <argument type="service" id="clarobi.service.encode_response"/>
         </service>
 
         <service id="Clarobi\Core\Api\ClarobiProductCountsController" public="true">
-            <argument type="service" id="clarobi.service.config"/>
             <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <argument type="service" id="clarobi.service.config"/>
+            <argument type="service" id="clarobi.service.encode_response"/>
         </service>
 
         <service id="Clarobi\Core\Api\ClarobiDataCountersController" public="true">
-            <argument type="service" id="clarobi.service.config"/>
             <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <argument type="service" id="clarobi.service.config"/>
         </service>
 
-        <!--todo: verify arguments-->
+        <service id="Clarobi\Core\Api\ClarobiDocumentsController" public="true">
+            <argument type="service" id="document.repository"/>
+            <argument type="service" id="document_type.repository"/>
+            <argument type="service" id="clarobi.service.config"/>
+            <argument type="service" id="clarobi.service.encode_response"/>
+        </service>
+
         <service id="Clarobi\Core\Api\ClarobiProductImageController" public="true">
             <argument type="service" id="product.repository"/>
             <tag name="controller.service_arguments"/>

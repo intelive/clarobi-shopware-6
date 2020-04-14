@@ -2,6 +2,8 @@
 
 namespace Clarobi\Core\Api;
 
+use Clarobi\Service\ClarobiConfigService;
+use Clarobi\Service\EncodeResponseService;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -10,6 +12,7 @@ use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Core\Framework\Context;
 
@@ -31,13 +34,27 @@ class ClarobiCreditNoteController extends AbstractController
      */
     private $documentTypeRepository;
 
+    /**
+     * @var EncodeResponseService
+     */
+    protected $encodeResponse;
+
+    /**
+     * @var ClarobiConfigService
+     */
+    protected $configService;
+
     public function __construct(
         EntityRepositoryInterface $documentRepository,
-        EntityRepositoryInterface $documentTypeRepository
+        EntityRepositoryInterface $documentTypeRepository,
+        ClarobiConfigService $configService,
+        EncodeResponseService $responseService
     )
     {
         $this->documentRepository = $documentRepository;
         $this->documentTypeRepository = $documentTypeRepository;
+        $this->configService = $configService;
+        $this->encodeResponse = $responseService;
     }
 
     /**
@@ -56,5 +73,6 @@ class ClarobiCreditNoteController extends AbstractController
         $entities = $this->documentRepository->search($criteria, $context);
 
         return new JsonResponse($entities, Response::HTTP_OK);
+//        return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::ENTITY_NAME));
     }
 }

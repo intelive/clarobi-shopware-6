@@ -22,6 +22,16 @@ class ClarobiProductImageController extends AbstractController
      */
     protected $productRepository;
 
+    /**
+     * die(self::ERR . $exception->getMessage());
+     */
+    const ERR = 'ERROR:';
+    /**
+     * @todo headers to add in response
+     */
+    const HEADER_UNITYREPORTS = 'UnityReports: OK';
+    const HEADER_CLAROBI = 'ClaroBI: OK';
+
     public function __construct(EntityRepositoryInterface $productRepository)
     {
         $this->productRepository = $productRepository;

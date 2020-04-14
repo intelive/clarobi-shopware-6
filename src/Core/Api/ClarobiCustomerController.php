@@ -3,6 +3,8 @@
 namespace Clarobi\Core\Api;
 
 use Clarobi\Service\ClarobiConfig;
+use Clarobi\Service\ClarobiConfigService;
+use Clarobi\Service\EncodeResponseService;
 use OpenApiFixures\Customer;
 use Shopware\Core\Checkout\Customer\CustomerEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
@@ -15,6 +17,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Core\Framework\Context;
@@ -32,46 +35,152 @@ class ClarobiCustomerController extends AbstractController
      */
     protected $customerRepository;
 
-    public function __construct(EntityRepositoryInterface $customerRepository)
+    /**
+     * @var EncodeResponseService
+     */
+    protected $encodeResponse;
+
+    /**
+     * @var ClarobiConfigService
+     */
+    protected $configService;
+
+    const ENTITY_NAME = 'customer';
+    const IGNORED_KEYS = [
+//        'id',
+//        'autoIncrement',
+//        'firstName',
+//        'lastName',
+//        'email',
+//        'guest',
+//        'createdAt',
+//        'title',
+//        'group',
+//        'salesChannel',
+//        'defaultBillingAddress',
+//        'defaultShippingAddress',
+//        'birthday',
+        'groupId',
+        'defaultPaymentMethodId',
+        'salesChannelId',
+        'languageId',
+        'lastPaymentMethodId',
+        'defaultBillingAddressId',
+        'defaultShippingAddressId',
+        'customerNumber',
+        'salutationId',
+        'company',
+        'password',
+        'affiliateCode',
+        'campaignCode',
+        'active',
+        'doubleOptInRegistration',
+        'doubleOptInEmailSentDate',
+        'doubleOptInConfirmDate',
+        'hash',
+        'firstLogin',
+        'lastLogin',
+        'newsletter',
+        'lastOrderDate',
+        'orderCount',
+        'updatedAt',
+        'legacyEncoder',
+        'legacyPassword',
+        'defaultPaymentMethod',
+        'language',
+        'lastPaymentMethod',
+        'salutation',
+        'activeBillingAddress',
+        'activeShippingAddress',
+        'addresses',
+        'orderCustomers',
+        'tags',
+        'promotions',
+        'recoveryCustomer',
+        'customFields',
+        'productReviews',
+        'remoteAddress',
+        '_uniqueIdentifier',
+        'versionId',
+        'translated',
+        'extensions',
+    ];
+
+    /**
+     * ClarobiCustomerController constructor.
+     *
+     * @param EntityRepositoryInterface $customerRepository
+     * @param ClarobiConfigService $configService
+     * @param EncodeResponseService $responseService
+     */
+    public function __construct(
+        EntityRepositoryInterface $customerRepository,
+        ClarobiConfigService $configService,
+        EncodeResponseService $responseService
+    )
     {
+        /**
+         * @todo : duplicate code - how can ge changed?
+         */
         $this->customerRepository = $customerRepository;
+        $this->configService = $configService;
+        $this->encodeResponse = $responseService;
     }
 
     /**
      * @Route("/clarobi/customer", name="clarobi.customer.list")
      */
-    public function listAction(): Response
+    public function listAction(Request $request): Response
     {
+        try {
+            // Verify token request
+            $this->configService->verifyRequestToken($request);
+            // Get param request
+            $from_id = $request->get('from_id');
+            if (is_null($from_id)) {
+                throw new \Exception('Param \'from_id\' is missing!');
+            }
+        } catch (\Exception $exception) {
+            return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
+        }
+
         $context = Context::createDefaultContext();
         $criteria = new Criteria();
-        $criteria->setLimit(10)
-            ->addFilter(new RangeFilter('autoIncrement', ['gte' => 1]))
-            ->addSorting(new FieldSorting('autoIncrement'));
+        $criteria->setLimit(1)
+            ->addFilter(new RangeFilter('autoIncrement', ['gte' => $from_id]))
+            ->addSorting(new FieldSorting('autoIncrement', FieldSorting::DESCENDING))
+            ->addAssociation('group')
+//            ->addAssociation('salesChannel')
+            ->addAssociation('defaultBillingAddress.country')
+            ->addAssociation('defaultShippingAddress.country');
 
         /** @var EntityCollection $entities */
         $entities = $this->customerRepository->search($criteria, $context);
 
-        /**
-         * @todo map entities
-         * @todo catch errors
-         * @todo return empty data
-         * @todo encode data
-         */
-        if (($entities->count()) === 0) {
-            return new JsonResponse(
-                ['No orders found matching given criteria.'],
-                Response::HTTP_OK
-            );
-        }
-
         $mappedEntities = [];
         /** @var CustomerEntity $element */
         foreach ($entities->getElements() as $element) {
-            $mappedEntities[$element->getId()] = [
-                'name' => $element->getFirstName(),
-                'autoIncrement' => $element->getAutoIncrement()
-            ];
+            $mappedEntities[] = $this->mapCustomerEntity($element->jsonSerialize());
         }
-        return new JsonResponse($mappedEntities, Response::HTTP_OK);
+
+        return new JsonResponse($mappedEntities);
+//        return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::ENTITY_NAME));
+    }
+
+    private function mapCustomerEntity($customer)
+    {
+        $mappedKeys['entity_name'] = self::ENTITY_NAME;
+        foreach ($customer as $key => $value) {
+            if (in_array($key, self::IGNORED_KEYS)) {
+                continue;
+            }
+            $mappedKeys[$key] = $value;
+        }
+        /**
+         * Set store id to sale channel?
+         * store id  ~ sale channel
+         */
+        $mappedKeys['store_id'] = 1;
+        return $mappedKeys;
     }
 }
