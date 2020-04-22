@@ -7,7 +7,8 @@
 
     <services>
 
-        <service id="Clarobi\Core\Framework\Routing\ClarobiRouteScope" class="Clarobi\Core\Framework\Routing\ClarobiRouteScope">
+        <service id="Clarobi\Core\Framework\Routing\ClarobiRouteScope"
+                 class="Clarobi\Core\Framework\Routing\ClarobiRouteScope">
             <tag name="shopware.route_scope"/>
         </service>
 

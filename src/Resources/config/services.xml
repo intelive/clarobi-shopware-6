@@ -12,8 +12,12 @@
             <tag name="shopware.entity.definition" entity="custom_entity"/>
         </service>
 
-        <!--Extending Product-->
+        <!--Extension-->
         <service id="Clarobi\Extension\Product\ProductCustomExtension">
+            <tag name="shopware.entity.extension"/>
+        </service>
+
+        <service id="Clarobi\Extension\Document\DocumentExtension">
             <tag name="shopware.entity.extension"/>
         </service>
 
@@ -21,7 +25,13 @@
         <service id="Clarobi\Subscriber\ExampleSubscriber">
             <tag name="kernel.event_subscriber"/>
         </service>
-        <!--todo : add subscriber for product page and cart update-->
+        <service id="Clarobi\Subscriber\ProductPageLoadSubscriber">
+            <tag name="kernel.event_subscriber"/>
+        </service>
+        <service id="Clarobi\Subscriber\CartUpdateSubscriber">
+            <argument type="service" id="product.repository"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
 
         <!--Service-->
         <service class="Clarobi\Service\ClarobiConfigService" id="clarobi.service.config" public="true">
@@ -72,6 +82,7 @@
         </service>
 
         <service id="Clarobi\Core\Api\ClarobiDocumentsController" public="true">
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
             <argument type="service" id="document.repository"/>
             <argument type="service" id="document_type.repository"/>
             <argument type="service" id="clarobi.service.config"/>
