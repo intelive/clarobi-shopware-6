@@ -6,7 +6,5 @@
         http://symfony.com/schema/routing/routing-1.0.xsd">
 
     <import resource="../../Core/Api/*Controller.php" type="annotation"/>
-<!--    <route id="clarobi.generate" path="/clarobi/generate" controller="Clarobi\Core\Api\DemoDataController::generate"-->
-<!--           methods="GET"/>-->
 
 </routes>

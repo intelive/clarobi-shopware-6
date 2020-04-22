@@ -6,25 +6,7 @@
 
     <services>
 
-        <!--Entity-->
-        <service class="Clarobi\Core\Content\Custom\CustomEntityDefinition"
-                 id="clarobi.custom.custom_entity_definition">
-            <tag name="shopware.entity.definition" entity="custom_entity"/>
-        </service>
-
-        <!--Extension-->
-        <service id="Clarobi\Extension\Product\ProductCustomExtension">
-            <tag name="shopware.entity.extension"/>
-        </service>
-
-        <service id="Clarobi\Extension\Document\DocumentExtension">
-            <tag name="shopware.entity.extension"/>
-        </service>
-
         <!--Subscriber-->
-        <service id="Clarobi\Subscriber\ExampleSubscriber">
-            <tag name="kernel.event_subscriber"/>
-        </service>
         <service id="Clarobi\Subscriber\ProductPageLoadSubscriber">
             <tag name="kernel.event_subscriber"/>
         </service>
