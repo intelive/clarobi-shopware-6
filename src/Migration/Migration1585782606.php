@@ -17,17 +17,20 @@ class Migration1585782606 extends MigrationStep
         $connection->executeUpdate('
             CREATE TABLE IF NOT EXISTS `clarobi_product_counts` (
               `product_id` BINARY(16) NOT NULL,
-              `views` INTEGER NOT NULL,
-              `adds_to_cart` INTEGER NOT NULL,
+              `product_auto_increment` INTEGER(11) NOT NULL,
+              `views` INT DEFAULT 0,
+              `adds_to_cart` INT DEFAULT 0  ,
               `created_at` DATETIME(3) NOT NULL,
               `updated_at` DATETIME(3) NULL,
               PRIMARY KEY (`product_id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            )
+                ENGINE=InnoDB
+                DEFAULT CHARSET=utf8mb4
+                COLLATE=utf8mb4_unicode_ci;
         ');
     }
 
     public function updateDestructive(Connection $connection): void
     {
-        // implement update destructive
     }
 }
