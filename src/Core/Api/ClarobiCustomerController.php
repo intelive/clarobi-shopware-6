@@ -2,25 +2,21 @@
 
 namespace Clarobi\Core\Api;
 
-use Clarobi\Service\ClarobiConfig;
+use Shopware\Core\Framework\Context;
 use Clarobi\Service\ClarobiConfigService;
 use Clarobi\Service\EncodeResponseService;
-use OpenApiFixures\Customer;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Shopware\Core\Checkout\Customer\CustomerEntity;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\System\Salutation\SalutationEntity;
+use Shopware\Core\Framework\Routing\Annotation\RouteScope;
+use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\RangeFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
-use Shopware\Core\Framework\Context;
 
 /**
  * Class ClarobiCustomerController
@@ -28,7 +24,7 @@ use Shopware\Core\Framework\Context;
  * @RouteScope(scopes={"storefront"})
  * @package Clarobi\Core\Api
  */
-class ClarobiCustomerController extends AbstractController
+class ClarobiCustomerController extends ClarobiAbstractController
 {
     /**
      * @var EntityRepositoryInterface
@@ -47,63 +43,16 @@ class ClarobiCustomerController extends AbstractController
 
     const ENTITY_NAME = 'customer';
     const IGNORED_KEYS = [
-//        'id',
-//        'autoIncrement',
-//        'firstName',
-//        'lastName',
-//        'email',
-//        'guest',
-//        'createdAt',
-//        'title',
-//        'group',
-//        'salesChannel',
-//        'defaultBillingAddress',
-//        'defaultShippingAddress',
-//        'birthday',
-        'groupId',
-        'defaultPaymentMethodId',
-        'salesChannelId',
-        'languageId',
-        'lastPaymentMethodId',
-        'defaultBillingAddressId',
-        'defaultShippingAddressId',
-        'customerNumber',
-        'salutationId',
-        'company',
-        'password',
-        'affiliateCode',
-        'campaignCode',
-        'active',
-        'doubleOptInRegistration',
-        'doubleOptInEmailSentDate',
-        'doubleOptInConfirmDate',
-        'hash',
-        'firstLogin',
-        'lastLogin',
-        'newsletter',
-        'lastOrderDate',
-        'orderCount',
-        'updatedAt',
-        'legacyEncoder',
-        'legacyPassword',
-        'defaultPaymentMethod',
-        'language',
-        'lastPaymentMethod',
-        'salutation',
-        'activeBillingAddress',
-        'activeShippingAddress',
-        'addresses',
-        'orderCustomers',
-        'tags',
-        'promotions',
-        'recoveryCustomer',
-        'customFields',
-        'productReviews',
-        'remoteAddress',
-        '_uniqueIdentifier',
-        'versionId',
-        'translated',
-        'extensions',
+//        'id', 'autoIncrement', 'firstName', 'lastName', 'email', 'guest', 'createdAt', 'title', 'group',
+//        'defaultBillingAddress', 'defaultShippingAddress', 'birthday',
+        'salutation', 'groupId', 'defaultPaymentMethodId', 'salesChannelId', 'languageId', 'lastPaymentMethodId',
+        'defaultBillingAddressId', 'defaultShippingAddressId', 'customerNumber', 'salutationId', 'company', 'password',
+        'affiliateCode', 'campaignCode', 'active', 'doubleOptInRegistration', 'doubleOptInEmailSentDate',
+        'doubleOptInConfirmDate', 'hash', 'firstLogin', 'lastLogin', 'newsletter', 'lastOrderDate', 'orderCount',
+        'updatedAt', 'legacyEncoder', 'legacyPassword', 'defaultPaymentMethod', 'language', 'lastPaymentMethod',
+        'activeBillingAddress', 'activeShippingAddress', 'addresses', 'orderCustomers', 'tags', 'promotions',
+        'recoveryCustomer', 'customFields', 'productReviews', 'remoteAddress', '_uniqueIdentifier', 'versionId',
+        'translated', 'extensions', 'salesChannel',
     ];
 
     /**
@@ -129,44 +78,53 @@ class ClarobiCustomerController extends AbstractController
 
     /**
      * @Route("/clarobi/customer", name="clarobi.customer.list")
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
-    public function listAction(Request $request): Response
+    public function listAction(Request $request): JsonResponse
     {
         try {
             // Verify token request
-            $this->configService->verifyRequestToken($request);
+            $this->verifyParam($request);
+            $this->verifyToken($request, $this->configService->getConfigs());
             // Get param request
             $from_id = $request->get('from_id');
-            if (is_null($from_id)) {
-                throw new \Exception('Param \'from_id\' is missing!');
+
+            $context = Context::createDefaultContext();
+            $criteria = new Criteria();
+            $criteria->setLimit(50)
+                ->addFilter(new RangeFilter('autoIncrement', ['gte' => $from_id]))
+                ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
+                ->addAssociation('group')
+                ->addAssociation('salutation')
+                ->addAssociation('defaultBillingAddress.country')
+                ->addAssociation('defaultShippingAddress.country');
+
+            /** @var EntityCollection $entities */
+            $entities = $this->customerRepository->search($criteria, $context);
+
+            $mappedEntities = [];
+            /** @var CustomerEntity $element */
+            foreach ($entities->getElements() as $element) {
+                $mappedEntities[] = $this->mapCustomerEntity($element->jsonSerialize());
             }
+            $lastId = $element->getAutoIncrement();
+
+            return new JsonResponse($this->encodeResponse->encodeResponse(
+                $mappedEntities,
+                self::ENTITY_NAME,
+                $lastId
+            ));
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
-
-        $context = Context::createDefaultContext();
-        $criteria = new Criteria();
-        $criteria->setLimit(1)
-            ->addFilter(new RangeFilter('autoIncrement', ['gte' => $from_id]))
-            ->addSorting(new FieldSorting('autoIncrement', FieldSorting::DESCENDING))
-            ->addAssociation('group')
-//            ->addAssociation('salesChannel')
-            ->addAssociation('defaultBillingAddress.country')
-            ->addAssociation('defaultShippingAddress.country');
-
-        /** @var EntityCollection $entities */
-        $entities = $this->customerRepository->search($criteria, $context);
-
-        $mappedEntities = [];
-        /** @var CustomerEntity $element */
-        foreach ($entities->getElements() as $element) {
-            $mappedEntities[] = $this->mapCustomerEntity($element->jsonSerialize());
-        }
-
-        return new JsonResponse($mappedEntities);
-//        return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::ENTITY_NAME));
     }
 
+    /**
+     * @param $customer
+     * @return mixed
+     */
     private function mapCustomerEntity($customer)
     {
         $mappedKeys['entity_name'] = self::ENTITY_NAME;
@@ -176,11 +134,18 @@ class ClarobiCustomerController extends AbstractController
             }
             $mappedKeys[$key] = $value;
         }
+        /** @var SalutationEntity $salutation */
+        $salutation = $customer['salutation'];
         /**
-         * Set store id to sale channel?
-         * store id  ~ sale channel
+         * Possible values: not_specified, mr, mrs
          */
-        $mappedKeys['store_id'] = 1;
+        $mappedKeys['salutation'] = $salutation->getSalutationKey();
+
+        /**
+         * @todo set store_id to a default value ?
+         */
+//        $mappedKeys['store_id'] = 1;
+
         return $mappedKeys;
     }
 }
