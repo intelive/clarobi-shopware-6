@@ -54,6 +54,9 @@ class ClarobiCustomerController extends ClarobiAbstractController
         'recoveryCustomer', 'customFields', 'productReviews', 'remoteAddress', '_uniqueIdentifier', 'versionId',
         'translated', 'extensions', 'salesChannel',
     ];
+    /**
+     * @todo add mapping on multiple levels
+     */
 
     /**
      * ClarobiCustomerController constructor.

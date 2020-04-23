@@ -34,6 +34,13 @@ class ClarobiProductCountsController extends ClarobiAbstractController
     protected $configService;
     protected $configs;
 
+    /**
+     * ClarobiProductCountsController constructor.
+     *
+     * @param Connection $connection
+     * @param ClarobiConfigService $configService
+     * @param EncodeResponseService $responseService
+     */
     public function __construct(
         Connection $connection,
         ClarobiConfigService $configService,

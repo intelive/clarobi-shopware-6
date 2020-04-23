@@ -37,6 +37,13 @@ class ClarobiStockController extends  ClarobiAbstractController
 
     protected $configs;
 
+    /**
+     * ClarobiStockController constructor.
+     *
+     * @param EntityRepositoryInterface $productRepository
+     * @param ClarobiConfigService $configService
+     * @param EncodeResponseService $responseService
+     */
     public function __construct(
         EntityRepositoryInterface $productRepository,
         ClarobiConfigService $configService,

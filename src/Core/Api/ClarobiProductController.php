@@ -59,6 +59,10 @@ class ClarobiProductController extends ClarobiAbstractController
     ];
 
     /**
+     * @todo add mapping on multiple levels
+     */
+
+    /**
      * ClarobiProductController constructor.
      *
      * @param EntityRepositoryInterface $productRepository
@@ -90,37 +94,37 @@ class ClarobiProductController extends ClarobiAbstractController
             $this->verifyToken($request, $this->configService->getConfigs());
             // Get param
             $from_id = $request->get('from_id');
+
+            $context = Context::createDefaultContext();
+            $criteria = new Criteria();
+            $criteria->setLimit(50)
+                ->addFilter(new RangeFilter('autoIncrement', ['gte' => $from_id]))
+                ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
+                ->addAssociation('parent')
+                ->addAssociation('options.group')
+                ->addAssociation('property')
+                ->addAssociation('bundles');
+
+            /** @var EntityCollection $entities */
+            $entities = $this->productRepository->search($criteria, $context);
+
+            $mappedEntities = [];
+            /** @var ProductEntity $element */
+            foreach ($entities->getElements() as $element) {
+                // map by ignoring keys
+                $mappedEntities[] = $this->mapProductEntity($element->jsonSerialize());
+
+            }
+            $lastId = $element->getAutoIncrement();
+
+            return new JsonResponse($this->encodeResponse->encodeResponse(
+                $mappedEntities,
+                self::ENTITY_NAME,
+                $lastId
+            ));
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
-
-        $context = Context::createDefaultContext();
-        $criteria = new Criteria();
-        $criteria->setLimit(50)
-            ->addFilter(new RangeFilter('autoIncrement', ['gte' => $from_id]))
-            ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
-            ->addAssociation('parent')
-            ->addAssociation('options.group')
-            ->addAssociation('property')
-            ->addAssociation('bundles');
-
-        /** @var EntityCollection $entities */
-        $entities = $this->productRepository->search($criteria, $context);
-
-        $mappedEntities = [];
-        /** @var ProductEntity $element */
-        foreach ($entities->getElements() as $element) {
-            // map by ignoring keys
-            $mappedEntities[] = $this->mapProductEntity($element->jsonSerialize());
-
-        }
-        $lastId = $element->getAutoIncrement();
-
-        return new JsonResponse($this->encodeResponse->encodeResponse(
-            $mappedEntities,
-            self::ENTITY_NAME,
-            $lastId
-        ));
     }
 
     /**

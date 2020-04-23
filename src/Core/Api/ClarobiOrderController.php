@@ -45,13 +45,29 @@ class ClarobiOrderController extends ClarobiAbstractController
     const IGNORED_KEYS = [
 //        'id', 'autoIncrement', 'orderNumber', 'currencyId', 'orderDateTime', 'orderDate', 'price', 'amountTotal',
 //        'amountNet', 'orderCustomer', 'currency', 'addresses', 'deliveries', 'lineItems', 'transactions',
-//        'createdAt', 'updatedAt',
+//        'createdAt', 'updatedAt', 'shippingTotal',
         'currencyFactor', 'salesChannelId', 'billingAddressId', 'positionPrice', 'taxStatus', 'shippingCosts',
-        'shippingTotal', 'languageId', 'language', 'salesChannel', 'deepLinkCode', 'stateMachineState', 'stateId',
+        'languageId', 'language', 'salesChannel', 'deepLinkCode', 'stateMachineState', 'stateId',
         'customFields', 'documents', 'tags', 'affiliateCode', 'campaignCode', '_uniqueIdentifier', 'versionId',
         'translated', 'extensions', 'billingAddressVersionId',
     ];
 
+    const IGNORED_KEYS_LEVEL_1 = [
+        'price' => [],
+        'orderCustomer' => [],
+        'addresses' => [],
+        'deliveries' => [],
+        'lineItems' => [],
+        'transactions' => []
+    ];
+
+    /**
+     * ClarobiOrderController constructor.
+     *
+     * @param EntityRepositoryInterface $orderRepository
+     * @param ClarobiConfigService $configService
+     * @param EncodeResponseService $responseService
+     */
     public function __construct(
         EntityRepositoryInterface $orderRepository,
         ClarobiConfigService $configService,
@@ -92,7 +108,6 @@ class ClarobiOrderController extends ClarobiAbstractController
 
             /**
              * @todo add association for discount code
-             * "shippingTotal": 10 - is calculated if shipping settings are set
              */
 
             /** @var OrderCollection $entities */
@@ -127,6 +142,21 @@ class ClarobiOrderController extends ClarobiAbstractController
                 continue;
             }
             $mappedKeys[$key] = $value;
+
+            /**
+             * @todo add mapping on multiple levels
+             */
+//            if (is_object($mappedKeys[$key])) {
+//                var_dump($key);
+//                foreach ($mappedKeys[$key] as $key2 => $line) {
+//
+////                    foreach (self::IGNORE_KEYS_IN_LINE_ITEMS[$entity] as $ignore_line_key) {
+////                        if (isset($return[$key][$key2][$ignore_line_key])) {
+////                            unset($return[$key][$key2][$ignore_line_key]);
+////                        }
+////                    }
+//                }
+//            }
         }
 
         return $mappedKeys;

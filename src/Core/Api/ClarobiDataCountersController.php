@@ -26,6 +26,12 @@ class ClarobiDataCountersController extends ClarobiAbstractController
      */
     protected $config;
 
+    /**
+     * ClarobiDataCountersController constructor.
+     *
+     * @param Connection $connection
+     * @param ClarobiConfigService $config
+     */
     public function __construct(Connection $connection, ClarobiConfigService $config)
     {
         $this->config = $config;

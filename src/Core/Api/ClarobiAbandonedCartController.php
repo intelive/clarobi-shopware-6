@@ -37,6 +37,7 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
     protected $configService;
 
     const ENTITY_NAME = 'abandonedcart';
+
     const IGNORED_KEYS = [
         'name',
         'token',
@@ -49,6 +50,17 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
         'extensions',
     ];
 
+    /**
+     * @todo add mapping on multiple levels
+     */
+
+    /**
+     * ClarobiAbandonedCartController constructor.
+     *
+     * @param Connection $connection
+     * @param ClarobiConfigService $configService
+     * @param EncodeResponseService $responseService
+     */
     public function __construct(
         Connection $connection,
         ClarobiConfigService $configService,
@@ -62,6 +74,7 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
 
     /**
      * @Route("/clarobi/abandonedcart", name="clarobi.abandonedcart.list")
+     *
      * @param Request $request
      * @return JsonResponse
      */

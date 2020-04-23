@@ -62,6 +62,30 @@ class ClarobiDocumentsController extends ClarobiAbstractController
         '_uniqueIdentifier', 'versionId', 'translated', 'extensions',
     ];
 
+    /**
+     * @todo add mapping on multiple levels
+     */
+    const IGNORED_KEY_LEVEL_1 = [
+        'order' => [
+            //'autoIncrement', , 'currencyId', 'orderDateTime', 'orderDate', 'price', 'amountTotal',
+//        'amountNet','currency',  'lineItems',  'shippingTotal','shippingCosts',
+            'createdAt', 'updatedAt', 'id', 'orderNumber', 'addresses', 'deliveries', 'transactions',
+            'currencyFactor', 'salesChannelId', 'billingAddressId', 'positionPrice', 'taxStatus',
+            'languageId', 'language', 'salesChannel', 'deepLinkCode', 'stateMachineState', 'stateId', 'orderCustomer',
+            'customFields', 'documents', 'tags', 'affiliateCode', 'campaignCode', '_uniqueIdentifier', 'versionId',
+            'translated', 'extensions', 'billingAddressVersionId',
+        ]
+    ];
+
+    /**
+     * ClarobiDocumentsController constructor.
+     *
+     * @param Connection $connection
+     * @param EntityRepositoryInterface $documentRepository
+     * @param EntityRepositoryInterface $documentTypeRepository
+     * @param ClarobiConfigService $configService
+     * @param EncodeResponseService $responseService
+     */
     public function __construct(
         Connection $connection,
         EntityRepositoryInterface $documentRepository,
@@ -87,7 +111,6 @@ class ClarobiDocumentsController extends ClarobiAbstractController
         /**
          * @todo filter documents by type in claro_app
          */
-
         try {
             // Verify request
             $this->verifyParam($request);
@@ -115,7 +138,9 @@ class ClarobiDocumentsController extends ClarobiAbstractController
             }
             $context = Context::createDefaultContext();
             $criteria = new Criteria($this->hexIds);
-            $criteria->addAssociation('order');
+            $criteria->addAssociation('order')
+                ->addAssociation('order.lineItems')
+                ->addAssociation('order.currency');
 
             /** @var EntityCollection $entities */
             $entities = $this->documentRepository->search($criteria, $context);
@@ -135,30 +160,6 @@ class ClarobiDocumentsController extends ClarobiAbstractController
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
-
-//        $resultStatement = $this->connection->executeQuery('
-//                SELECT * FROM `document`
-//                INNER JOIN `order` ON `order`.id = `document`.order_id
-//                ORDER BY `document`.`clarobi_auto_increment` ASC LIMIT 10;
-//            ');
-//        $results = $resultStatement->fetchAll();
-//        if ($results) {
-//            /** @var DocumentEntity $result */
-//            foreach ($results as $result) {
-//                var_dump(($result));
-//                die;
-//            }
-//        }
-//        $context = Context::createDefaultContext();
-//        $criteria = new Criteria();
-//        $criteria->setLimit(10)
-//            ->addFilter(new RangeFilter('id', ['gte' => $from_id]))
-//            ->addSorting(new FieldSorting('id', FieldSorting::ASCENDING))
-//            ->addAssociation('order');
-//
-//        /** @var EntityCollection $entities */
-//        $entities = $this->documentRepository->search($criteria, $context);
-
     }
 
     /**
