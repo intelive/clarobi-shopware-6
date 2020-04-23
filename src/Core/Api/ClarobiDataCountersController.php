@@ -2,19 +2,20 @@
 
 namespace Clarobi\Core\Api;
 
-use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
-use Clarobi\Service\ClarobiConfigService;
 use Doctrine\DBAL\Connection;
-use Shopware\Core\Checkout\Cart\Cart;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Clarobi\Service\ClarobiConfigService;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Shopware\Core\Framework\Routing\Annotation\RouteScope;
+use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
 
 class ClarobiDataCountersController extends ClarobiAbstractController
 {
     // auto_increment
-    const SELECT = 'SELECT `id` FROM ';
-    const ORDER_BY = ' ORDER BY `id` DESC LIMIT 1; ';
+    const SELECT = 'SELECT `auto_increment` as id FROM ';
+    const ORDER_BY = ' ORDER BY `auto_increment` DESC LIMIT 1; ';
+    const SELECT2 = 'SELECT `clarobi_auto_increment` as id FROM ';
+    const ORDER_BY2 = ' ORDER BY `clarobi_auto_increment` DESC LIMIT 1; ';
     /**
      * @var Connection
      */
@@ -43,29 +44,17 @@ class ClarobiDataCountersController extends ClarobiAbstractController
         $productQuery = $this->connection->executeQuery(self::SELECT . '`product`' . self::ORDER_BY)->fetch();
         $customerQuery = $this->connection->executeQuery(self::SELECT . '`customer`' . self::ORDER_BY)->fetch();
         $orderQuery = $this->connection->executeQuery(self::SELECT . '`order`' . self::ORDER_BY)->fetch();
-        $documentQuery = $this->connection->executeQuery(self::SELECT . '`document`' . self::ORDER_BY)->fetch();
-        $abandonedCartQuery = $this->connection->executeQuery('
-            SELECT `created_at`, `cart` FROM `cart`
-            ORDER BY `created_at` DESC LIMIT 1;
-        ')->fetch();
+        $documentQuery = $this->connection->executeQuery(self::SELECT2 . '`document`' . self::ORDER_BY2)->fetch();
+        $abandonedCartQuery = $this->connection->executeQuery(self::SELECT2 . '`cart`' . self::ORDER_BY2)->fetch();
 
-        $abandonedCart = null;
-        if ($abandonedCartQuery) {
-            /** @var Cart $abandonedCart */
-            $abandonedCart = unserialize($abandonedCartQuery['cart']);
-        }
         return new JsonResponse(
             [
-                'product' => ($productQuery ? $this->hexToDec($productQuery['id']) : 0),
-                'customer' => ($customerQuery ? $this->hexToDec($customerQuery['id']) : 0),
-                'order' => ($orderQuery ? $this->hexToDec($orderQuery['id']) : 0),
-                'abandonedcart' => 0,
-                // todo : delete (replaced by document)
-//                'invoice' => 0,
-//                'creditmemo' => 0,
-                'document' => ($documentQuery ? $this->hexToDec($documentQuery['id']) : 0)
+                'product' => ($productQuery ? $productQuery['id'] : 0),
+                'customer' => ($customerQuery ? $customerQuery['id'] : 0),
+                'order' => ($orderQuery ? $orderQuery['id'] : 0),
+                'abandonedcart' => ($abandonedCartQuery ? $abandonedCartQuery['id'] : 0),
+                'document' => ($documentQuery ? $documentQuery['id'] : 0)
             ]
         );
     }
-
 }
