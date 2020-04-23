@@ -16,6 +16,9 @@ class EncodeResponseService
      */
     protected $configService;
 
+    protected $apiSecret;
+    protected $apiLicense;
+
     /**
      * EncodeResponse constructor.
      *
@@ -25,6 +28,10 @@ class EncodeResponseService
     public function __construct(ClarobiConfigService $configService)
     {
         $this->configService = $configService;
+
+        $configs = $this->configService->getConfigs();
+        $this->apiSecret = $configs['apiSecret'];
+        $this->apiLicense = $configs['apiLicense'];
     }
 
     /**
@@ -33,13 +40,15 @@ class EncodeResponseService
      * @param null $type
      * @return array
      */
-    public function encodeResponse($data, $entityName, $type = null): array
+    public function encodeResponse($data, $entityName, $lastId = 0, $type = null): array
     {
         $responseIsEncoded = $responseIsCompressed = false;
 
+        $originalData = $data;
+
         // Encode and compress the data only if we have it
         if (!empty($data)) {
-            $encoded = EncodeDecode::encode($data, $this->configService->apiSecret);
+            $encoded = EncodeDecode::encode($data, $this->apiSecret);
 
             if (is_string($encoded)) {
                 $responseIsEncoded = true;
@@ -52,14 +61,19 @@ class EncodeResponseService
                 $data = $compressed;
             }
         }
-
-        return [
+        $encodedResponse = [
             'isEncoded' => $responseIsEncoded,
             'isCompressed' => $responseIsCompressed,
-            'data' => $data,
-            'license_key' => $this->configService->apiLicense,
+            'rawData' => $originalData,
+//            'data' => $data,
+            'license_key' => $this->apiLicense,
             'entity' => $entityName,
             'type' => ($type ? $type : 'SYNC')
         ];
+        if($lastId){
+            $encodedResponse['lastId'] = $lastId;
+        }
+
+        return $encodedResponse;
     }
 }

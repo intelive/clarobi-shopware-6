@@ -54,6 +54,11 @@ class ProductCountsDataExtractor
      */
     protected function getProductAutoIncrement($itemId)
     {
+        /**
+         * @todo save id in table instead of auto_increment
+         *      and use this class when the route for product counters is called
+         *      to get auto_increment
+         */
         $itemAutoIncrement = 0;
 
         $context = Context::createDefaultContext();

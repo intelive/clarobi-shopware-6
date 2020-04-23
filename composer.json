@@ -19,5 +19,7 @@
         "label": {
             "en-GB": "Clarobi API plugin"
         }
+    },
+    "require": {
     }
 }

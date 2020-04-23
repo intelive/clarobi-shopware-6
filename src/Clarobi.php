@@ -17,6 +17,10 @@ class Clarobi extends Plugin
         $indexerMessageSender->partial(new \DateTimeImmutable(), [InheritanceIndexer::getName()]);
     }
 
+    /**
+     * @param UninstallContext $context
+     * @throws \Doctrine\DBAL\DBALException
+     */
     public function uninstall(UninstallContext $context): void
     {
         parent::uninstall($context);
@@ -28,5 +32,9 @@ class Clarobi extends Plugin
         $connection = $this->container->get(Connection::class);
 
         $connection->executeUpdate('DROP TABLE IF EXISTS `clarobi_product_counts`');
+
+        /**
+         * @todo delete configurations
+         */
     }
 }
