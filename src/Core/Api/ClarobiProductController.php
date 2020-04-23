@@ -2,23 +2,20 @@
 
 namespace Clarobi\Core\Api;
 
-use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
+use Shopware\Core\Framework\Context;
 use Clarobi\Service\ClarobiConfigService;
 use Clarobi\Service\EncodeResponseService;
-use Shopware\Core\Content\Product\ProductCollection;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Core\Content\Product\ProductEntity;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Shopware\Core\Framework\Routing\Annotation\RouteScope;
+use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\ContainsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\RangeFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
-use Shopware\Core\Framework\Context;
 
 /**
  * Class ClarobiProductController
@@ -46,90 +43,18 @@ class ClarobiProductController extends ClarobiAbstractController
     const ENTITY_NAME = 'product';
 
     const IGNORED_KEYS = [
-//        'parentId',
-//        'autoIncrement',
-//        'active',
-//        'productNumber',
-//        'stock',
-//        'availableStock',
-//        'available',
-//        'name',
-//        'variantRestrictions',
-//        'properties',
-//        'options',
-//        'visibilities',
-//        'createdAt',
-//        'updatedAt',
-//        'id',
-//        'optionIds',
-        'propertyIds',
-//        'price',
-//        'parent',
-
-
-        'categories',
-        'categoryTree',
-        'childCount',
-        'taxId',
-        'manufacturerId',
-        'unitId',
-        'displayGroup',
-        'manufacturerNumber',
-        'ean',
-        'deliveryTimeId',
-        'deliveryTime',
-        'restockTime',
-        'isCloseout',
-        'purchaseSteps',
-        'maxPurchase',
-        'minPurchase',
-        'purchaseUnit',
-        'referenceUnit',
-        'shippingFree',
-        'purchasePrice',
-        'markAsTopseller',
-        'weight',
-        'width',
-        'height',
-        'length',
-        'releaseDate',
-        'keywords',
-        'description',
-        'metaDescription',
-        'metaTitle',
-        'packUnit',
-        'configuratorGroupConfig',
-        'tax',
-        'manufacturer',
-        'unit',
-        'prices',
-        'listingPrices',
-        'cover',
-        'children',
-        'media',
-        'searchKeywords',
-        'translations',
-        'tags',
-        'configuratorSettings',
-        'categoriesRo',
-        'coverId',
-        'blacklistIds',
-        'whitelistIds',
-        'customFields',
-        'tagIds',
-        'productReviews',
-        'ratingAverage',
-        'mainCategories',
-        'seoUrls',
-        'orderLineItems',
-        'crossSellings',
-        'crossSellingAssignedProducts',
-        '_uniqueIdentifier',
-        'versionId',
-        'translated',
-        'extensions',
-        'parentVersionId',
-        'productManufacturerVersionId',
+//        'parentId', 'autoIncrement', 'active', 'productNumber', 'stock', 'availableStock', 'available', 'name',
+//        'variantRestrictions', 'properties', 'options', 'visibilities', 'createdAt', 'updatedAt', 'id', 'optionIds',
+//        'price', 'parent',
+        'propertyIds', 'categories', 'categoryTree', 'childCount', 'taxId', 'manufacturerId', 'unitId', 'displayGroup',
+        'manufacturerNumber', 'ean', 'deliveryTimeId', 'deliveryTime', 'restockTime', 'isCloseout', 'purchaseSteps',
+        'maxPurchase', 'minPurchase', 'purchaseUnit', 'referenceUnit', 'shippingFree', 'purchasePrice',
+        'markAsTopseller', 'weight', 'width', 'height', 'length', 'releaseDate', 'keywords', 'description',
+        'metaDescription', 'metaTitle', 'packUnit', 'configuratorGroupConfig', 'tax', 'manufacturer', 'unit', 'prices',
+        'listingPrices', 'cover', 'children', 'media', 'searchKeywords', 'translations', 'tags', 'configuratorSettings',
+        'categoriesRo', 'coverId', 'blacklistIds', 'whitelistIds', 'customFields', 'tagIds', 'productReviews',
+        'ratingAverage', 'mainCategories', 'seoUrls', 'orderLineItems', 'crossSellings', 'crossSellingAssignedProducts',
+        '_uniqueIdentifier', 'versionId', 'translated', 'extensions', 'parentVersionId', 'productManufacturerVersionId',
         'productMediaVersionId'
     ];
 
@@ -153,35 +78,31 @@ class ClarobiProductController extends ClarobiAbstractController
 
     /**
      * @Route("/clarobi/product", name="clarobi.product.list")
+     *
      * @param Request $request
-     * @return Response
+     * @return JsonResponse
      */
-    public function listAction(Request $request): Response
+    public function listAction(Request $request): JsonResponse
     {
         try {
             // Verify request
-            $this->verifyRequest($request, $this->configService->getConfigs());
+            $this->verifyParam($request);
+            $this->verifyToken($request, $this->configService->getConfigs());
             // Get param
             $from_id = $request->get('from_id');
-
-            $from_id = $this->decToHex($from_id);
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
 
         $context = Context::createDefaultContext();
         $criteria = new Criteria();
-        $criteria->setLimit(10)
-            ->addFilter(new RangeFilter('id',['gte'=>$from_id]))
-            ->addSorting(new FieldSorting('id', FieldSorting::ASCENDING))
+        $criteria->setLimit(50)
+            ->addFilter(new RangeFilter('autoIncrement', ['gte' => $from_id]))
+            ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
             ->addAssociation('parent')
             ->addAssociation('options.group')
-            ->addAssociation('property');
-
-        /**
-         * @todo resolve - not working
-         * $criteria->setIncludes(['name', 'autoIncrement']);
-         */
+            ->addAssociation('property')
+            ->addAssociation('bundles');
 
         /** @var EntityCollection $entities */
         $entities = $this->productRepository->search($criteria, $context);
@@ -193,9 +114,13 @@ class ClarobiProductController extends ClarobiAbstractController
             $mappedEntities[] = $this->mapProductEntity($element->jsonSerialize());
 
         }
+        $lastId = $element->getAutoIncrement();
 
-        return new JsonResponse($mappedEntities);
-//        return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::ENTITY_NAME));
+        return new JsonResponse($this->encodeResponse->encodeResponse(
+            $mappedEntities,
+            self::ENTITY_NAME,
+            $lastId
+        ));
     }
 
     /**
@@ -211,18 +136,9 @@ class ClarobiProductController extends ClarobiAbstractController
             }
             $mappedKeys[$key] = $value;
         }
-        $mappedKeys['id'] = $this->hexToDec($product['id']);
         $mappedKeys['type'] = ($mappedKeys['parentId'] ? 'configurable' : 'simple');
 
-//        if ($mappedKeys['parentId']) {
-//            $prodColl = new ProductCollection();
-//            $productParent = $prodColl->filterByParentId($mappedKeys['parentId']);
-//            var_dump($productParent);
-//            die;
-//        }
-
         /**
-         * @todo get sku
          * @todo get parent auto_increment
          * @todo get options/variations
          */
