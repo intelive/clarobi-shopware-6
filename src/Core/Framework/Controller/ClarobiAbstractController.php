@@ -2,24 +2,12 @@
 
 namespace Clarobi\Core\Framework\Controller;
 
-use Shopware\Core\Framework\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 abstract class ClarobiAbstractController extends AbstractController
 {
-
-    public function hexToDec($hexId)
-    {
-        $bytes = Uuid::fromHexToBytes($hexId);
-//        var_dump($bytes);
-//        var_dump(bindec($bytes));
-//        die;
-
-        return hexdec($hexId);
-    }
-
     /**
      * @param Request $request
      * @throws \Exception
