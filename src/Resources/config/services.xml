@@ -53,6 +53,7 @@
             <argument type="service" id="Doctrine\DBAL\Connection"/>
             <argument type="service" id="clarobi.service.config"/>
             <argument type="service" id="clarobi.service.encode_response"/>
+            <argument type="service" id="product.repository"/>
         </service>
 
         <service id="Clarobi\Core\Api\ClarobiProductCountsController" public="true">

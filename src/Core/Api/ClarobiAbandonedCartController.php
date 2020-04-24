@@ -3,15 +3,19 @@
 namespace Clarobi\Core\Api;
 
 use Doctrine\DBAL\Connection;
+use Shopware\Core\Framework\Context;
 use Shopware\Core\Checkout\Cart\Cart;
 use Clarobi\Service\ClarobiConfigService;
 use Clarobi\Service\EncodeResponseService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
-use Shopware\Core\Checkout\Cart\LineItem\LineItem;
+use Shopware\Core\Content\Product\ProductEntity;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 
 /**
  * Class ClarobiAbandonedCartController
@@ -35,6 +39,8 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
      * @var ClarobiConfigService
      */
     protected $configService;
+
+    protected $productRepository;
 
     const ENTITY_NAME = 'abandonedcart';
 
@@ -64,12 +70,14 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
     public function __construct(
         Connection $connection,
         ClarobiConfigService $configService,
-        EncodeResponseService $responseService
+        EncodeResponseService $responseService,
+        EntityRepositoryInterface $productRepository
     )
     {
         $this->connection = $connection;
         $this->configService = $configService;
         $this->encodeResponse = $responseService;
+        $this->productRepository = $productRepository;
     }
 
     /**
@@ -93,7 +101,7 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
                     WHERE DATE (`created_at`) <= DATE_SUB(DATE(NOW()), INTERVAL 2 DAY)
                         AND `clarobi_auto_increment` >= ' . $from_id . '
                     ORDER BY `clarobi_auto_increment` ASC
-                    LIMIT 25;
+                    LIMIT 50;
             ');
             $results = $resultStatement->fetchAll();
 
@@ -140,14 +148,16 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
 
         $mappedKeys['lineItems'] = [];
         /** @var LineItem $lineItem */
-        foreach ($cart['lineItems'] as $lineItem){
-            // todo get product based on id
-            // todo get product auto_increment
-            // todo get product sku - productName
+        foreach ($cart['lineItems'] as $lineItem) {
+            $criteria = new Criteria([$lineItem->getId()]);
+            /** @var ProductEntity $product */
+            $product = $this->productRepository->search($criteria, Context::createDefaultContext())->first();
+
             $mappedKeys['lineItems'][] = [
                 'price' => $lineItem->getPrice(),
                 'quantity' => $lineItem->getQuantity(),
-                'id' => $lineItem->getId(),
+                'id' => $product->getAutoIncrement(),
+                'sku' => $product->getProductNumber(),
                 'name' => $lineItem->getLabel(),
             ];
         }
