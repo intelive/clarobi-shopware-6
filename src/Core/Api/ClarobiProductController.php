@@ -46,15 +46,13 @@ class ClarobiProductController extends ClarobiAbstractController
     const ENTITY_NAME = 'product';
 
     const IGNORED_KEYS = [
-//         'autoIncrement', 'active', 'productNumber', 'stock', 'availableStock', 'available', 'name',
-//        'variantRestrictions',  'options', 'visibilities', 'createdAt', 'updatedAt', 'id',
-//        'price',
-//        'childCount',
+//        'autoIncrement', 'active', 'productNumber', 'stock', 'availableStock', 'available', 'name',
+//        'variantRestrictions',
+        'options',
+// 'visibilities', 'createdAt', 'updatedAt', 'id', 'price', 'childCount',
         'children',
-        'parentId',
-        'parent',
-        'optionIds',
-        'media',
+//        'parentId', 'parent',
+        'optionIds', 'media',
         'properties',
         'propertyIds', 'categories', 'categoryTree', 'taxId', 'manufacturerId', 'unitId', 'displayGroup',
         'manufacturerNumber', 'ean', 'deliveryTimeId', 'deliveryTime', 'restockTime', 'isCloseout', 'purchaseSteps',
@@ -67,10 +65,6 @@ class ClarobiProductController extends ClarobiAbstractController
         '_uniqueIdentifier', 'versionId', 'translated', 'extensions', 'parentVersionId', 'productManufacturerVersionId',
         'productMediaVersionId'
     ];
-
-    /**
-     * @todo add mapping on multiple levels
-     */
 
     /**
      * ClarobiProductController constructor.
@@ -107,16 +101,13 @@ class ClarobiProductController extends ClarobiAbstractController
 
             $context = Context::createDefaultContext();
             $criteria = new Criteria();
-            $criteria->setLimit(1)
+            $criteria->setLimit(50)
                 ->addFilter(new RangeFilter('autoIncrement', ['gte' => $from_id]))
                 ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
-//                ->addAssociation('parent')
-//                ->addAssociation('options')
                 ->addAssociation('options.group')
+                ->addAssociation('properties.group')
                 ->addAssociation('children.options.group')
-//                ->addAssociation('variants')
-//                ->addAssociation('properties')
-            ;
+                ->addAssociation('children.properties.group');
 
             /** @var EntityCollection $entities */
             $entities = $this->productRepository->search($criteria, $context);
@@ -140,7 +131,7 @@ class ClarobiProductController extends ClarobiAbstractController
     }
 
     /**
-     * @param array $product
+     * @param $product
      * @return array
      */
     private function mapProductEntity($product)
@@ -164,69 +155,80 @@ class ClarobiProductController extends ClarobiAbstractController
         }
 
         $options = $this->getProductOptions($product);
-        $mappedKeys['options'] = $options;
+        $properties = $this->mapPropertiesArray(
+            $this->mapPropertyGroupOptionCollection($product['properties'])
+        );
 
+        $mappedKeys['options'] = $options;
+        $mappedKeys['properties'] = $properties;
         return $mappedKeys;
     }
 
+    /**
+     * @param $product
+     * @return array
+     */
     private function getProductOptions($product)
     {
         $optionsArray = [];
         // if product is simple - get options
         if (!$product['childCount']) {
-//            /** @var PropertyGroupOptionCollection $options */
-//            $options = $product['options'];
-//            $serOptions = $options->jsonSerialize();
-//
-//            /** @var PropertyGroupOptionEntity $option */
-//            foreach ($serOptions as $option) {
-//                $serOpt = $option->jsonSerialize();
-//                $group = $option->getGroup()->jsonSerialize();
-//                $optionsArray[] = [
-//                    'value' => $serOpt['name'],
-//                    'label' => $group['name']
-//                ];
-//            }
-            $optionsArray = $this->mapPropertyGroupOptionEntity($product['options']);
+            $optionsArray = $this->mapPropertyGroupOptionCollection($product['options']);
         } else {
             // for each children - get options
             /** @var ProductCollection $children */
             $children = $product['children'];
             foreach ($children->getElements() as $element) {
-//                /** @var PropertyGroupOptionCollection $options */
-//                $options = $element->getOptions();
-//                $serOptions = $options->jsonSerialize();
-//
-//                /** @var PropertyGroupOptionEntity $option */
-//                foreach ($serOptions as $option) {
-//                    $serOpt = $option->jsonSerialize();
-//                    $group = $option->getGroup()->jsonSerialize();
-//                    $optionsArray[] = [
-//                        'value' => $serOpt['name'],
-//                        'label' => $group['name']
-//                    ];
-//                }
-                $optionsArray = array_merge($optionsArray, $this->mapPropertyGroupOptionEntity($element->getOptions()));
-//                $optionsArray[] = $this->mapPropertyGroupOptionEntity($element->getOptions());
+                $optionsArray = array_merge($optionsArray, $this->mapPropertyGroupOptionCollection($element->getOptions()));
             }
         }
+
         return array_unique($optionsArray, SORT_REGULAR);
-//        return $optionsArray;
     }
 
-    private function mapPropertyGroupOptionEntity(PropertyGroupOptionCollection $options)
+    /**
+     * @param array $properties
+     * @return array
+     */
+    private function mapPropertiesArray($properties)
+    {
+        $propertiesArray = [];
+
+        foreach ($properties as $property) {
+            if (!key_exists($property['label'], $propertiesArray)) {
+                $propertiesArray[$property['label']] = $property['value'];
+            } else {
+                $oldValues = explode(', ', $propertiesArray[$property['label']]);
+                $oldValues[] = $property['value'];
+                $propertiesArray[$property['label']] = implode(', ',$oldValues);
+            }
+        }
+
+        return $propertiesArray;
+    }
+
+    /**
+     * @param PropertyGroupOptionCollection $options
+     * @return array
+     */
+    private function mapPropertyGroupOptionCollection(PropertyGroupOptionCollection $options)
     {
         $mappedOptions = [];
         $serOptions = $options->jsonSerialize();
 
         /** @var PropertyGroupOptionEntity $option */
         foreach ($serOptions as $option) {
-            $serOpt = $option->jsonSerialize();
-            $group = $option->getGroup()->jsonSerialize();
             $mappedOptions[] = [
-                'value' => $serOpt['name'],
-                'label' => $group['name']
+                'value' => $option->getName(),
+                'label' => $option->getGroup()->getName()
             ];
+
+//            $serOpt = $option->jsonSerialize();
+//            $group = $option->getGroup()->jsonSerialize();
+//            $mappedOptions[] = [
+//                'value' => $serOpt['name'],
+//                'label' => $group['name']
+//            ];
         }
 
         return $mappedOptions;
