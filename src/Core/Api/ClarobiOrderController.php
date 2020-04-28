@@ -2,6 +2,11 @@
 
 namespace Clarobi\Core\Api;
 
+use Shopware\Core\Checkout\Order\Aggregate\OrderAddress\OrderAddressCollection;
+use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryCollection;
+use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryEntity;
+use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
+use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionCollection;
 use Shopware\Core\Framework\Context;
 use Clarobi\Service\ClarobiConfigService;
 use Clarobi\Service\EncodeResponseService;
@@ -43,11 +48,19 @@ class ClarobiOrderController extends ClarobiAbstractController
     const ENTITY_NAME = 'sales_order';
 
     const IGNORED_KEYS = [
-//        'id', 'autoIncrement', 'orderNumber', 'currencyId', 'orderDateTime', 'orderDate', 'price', 'amountTotal',
-//        'amountNet', 'orderCustomer', 'currency', 'addresses', 'deliveries', 'lineItems', 'transactions',
+//        'id', 'autoIncrement', 'orderNumber', 'currencyId', 'orderDateTime', 'orderDate',
+//        'price', 'amountTotal', 'shippingCosts',
+//        'amountNet', 'orderCustomer', 'currency', 'lineItems',
 //        'createdAt', 'updatedAt', 'shippingTotal',
-        'currencyFactor', 'salesChannelId', 'billingAddressId', 'positionPrice', 'taxStatus', 'shippingCosts',
-        'languageId', 'language', 'salesChannel', 'deepLinkCode', 'stateMachineState', 'stateId',
+        'transactions',
+
+        'deliveries',
+        'addresses',
+        'currencyFactor', 'salesChannelId',
+        'billingAddressId',
+        'positionPrice', 'taxStatus',
+        'stateMachineState',
+        'languageId', 'language', 'salesChannel', 'deepLinkCode', 'stateId',
         'customFields', 'documents', 'tags', 'affiliateCode', 'campaignCode', '_uniqueIdentifier', 'versionId',
         'translated', 'extensions', 'billingAddressVersionId',
     ];
@@ -55,10 +68,10 @@ class ClarobiOrderController extends ClarobiAbstractController
     const IGNORED_KEYS_LEVEL_1 = [
         'price' => [],
         'orderCustomer' => [],
-        'addresses' => [],
-        'deliveries' => [],
+//        'addresses' => [],
+//        'deliveries' => [],
         'lineItems' => [],
-        'transactions' => []
+//        'transactions' => []
     ];
 
     /**
@@ -96,18 +109,23 @@ class ClarobiOrderController extends ClarobiAbstractController
 
             $context = Context::createDefaultContext();
             $criteria = new Criteria();
-            $criteria->setLimit(1)
+            $criteria->setLimit(50)
                 ->addFilter(new RangeFilter('autoIncrement', ['gte' => $from_id]))
                 ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
                 ->addAssociation('lineItems.product.categories')
-                ->addAssociation('addresses')
+                ->addAssociation('lineItems.product.properties')
+                ->addAssociation('lineItems.product.parent')
+                ->addAssociation('deliveries.shippingMethod')
+//                ->addAssociation('deliveries.shippingOrderAddress.country')
+//                ->addAssociation('deliveries.shippingOrderAddress.countryState')
                 ->addAssociation('addresses.country')
-                ->addAssociation('addresses.state')
-                ->addAssociation('deliveries')
-                ->addAssociation('transactions.paymentMethod');
+                ->addAssociation('addresses.countryState')
+                ->addAssociation('transactions.paymentMethod')
+                ->addAssociation('orderCustomer.customer.group')
+                ->addAssociation('currency');
 
             /**
-             * @todo add association for discount code
+             * @todo load product parent
              */
 
             /** @var OrderCollection $entities */
@@ -142,22 +160,53 @@ class ClarobiOrderController extends ClarobiAbstractController
                 continue;
             }
             $mappedKeys[$key] = $value;
-
-            /**
-             * @todo add mapping on multiple levels
-             */
-//            if (is_object($mappedKeys[$key])) {
-//                var_dump($key);
-//                foreach ($mappedKeys[$key] as $key2 => $line) {
-//
-////                    foreach (self::IGNORE_KEYS_IN_LINE_ITEMS[$entity] as $ignore_line_key) {
-////                        if (isset($return[$key][$key2][$ignore_line_key])) {
-////                            unset($return[$key][$key2][$ignore_line_key]);
-////                        }
-////                    }
-//                }
-//            }
         }
+
+        // Get order status
+        $mappedKeys['status'] = $order['stateMachineState']->getTechnicalName();
+
+        /** @var OrderTransactionCollection $transactions */
+        $transactions = $order['transactions'];
+        $mappedKeys['paymentMethod'] = $transactions->last()->getPaymentMethod()->getName();
+
+        /** @var OrderDeliveryCollection $deliveries */
+        $deliveries = $order['deliveries'];
+
+        // Get order shipping description
+        $mappedKeys['shippingDescription'] = $deliveries->last()->getShippingMethod()->getDescription();
+
+        // Get billing and shipping address separate
+        $shippingOrderAddressId = $deliveries->last()->getShippingOrderAddressId();
+        /** @var OrderAddressCollection $addresses */
+        $addresses = $order['addresses'];
+        foreach ($addresses->getElements() as $element) {
+            if ($element->getId() == $order['billingAddressId']) {
+                $mappedKeys['billingAddress'] = $element;
+            }
+            if ($element->getId() == $shippingOrderAddressId) {
+                $mappedKeys['shippingAddress'] = $element;
+            }
+        }
+
+        // If line item is of type 'product' add parent
+        // More mapping may be done to reduce data
+        /** @var OrderLineItemEntity $lineItem */
+//        foreach ($order['lineItems'] as $lineItem) {
+//            $serialize = $lineItem->jsonSerialize();
+//            if($lineItem->getType() == 'product'){
+//                $serialize['parent'] = $lineItem->getPa
+//            }
+//        }
+
+        /**
+         * Add options to every line item
+         * "options":{
+         *      "attribute_id": "1",
+         *      "item_id": "381", #order item id,
+         *      "label": "Manufacturer",
+         *      "value": "Made In China"
+         * }
+         */
 
         return $mappedKeys;
     }
