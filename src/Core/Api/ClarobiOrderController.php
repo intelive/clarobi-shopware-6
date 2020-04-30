@@ -49,26 +49,12 @@ class ClarobiOrderController extends ClarobiAbstractController
     const ENTITY_NAME = 'sales_order';
 
     const IGNORED_KEYS = [
-//        'id', 'autoIncrement', 'orderNumber',
-//      'orderDateTime', 'orderDate',
-//        'price', 'amountTotal', 'shippingCosts',
-//        'amountNet', 'orderCustomer',
-//        'createdAt', 'updatedAt', 'shippingTotal',
-
-        'currencyId',
-        'currency',
-        'lineItems',
-        'transactions',
-        'deliveries',
-        'addresses',
-        'currencyFactor',
-//        'salesChannelId',
-        'billingAddressId',
-        'positionPrice', 'taxStatus',
-        'stateMachineState',
-        'languageId', 'language', 'salesChannel', 'deepLinkCode', 'stateId',
-        'customFields', 'documents', 'tags', 'affiliateCode', 'campaignCode', '_uniqueIdentifier', 'versionId',
-        'translated', 'extensions', 'billingAddressVersionId',
+//        'id', 'autoIncrement', 'orderNumber', 'orderDateTime', 'orderDate', 'price', 'amountTotal', 'shippingCosts',
+//        'amountNet', 'orderCustomer', 'createdAt', 'updatedAt', 'shippingTotal', 'salesChannelId',
+        'currencyId', 'currency', 'lineItems', 'transactions', 'deliveries', 'addresses', 'currencyFactor',
+        'billingAddressId', 'positionPrice', 'taxStatus', 'stateMachineState', 'languageId', 'language',
+        'salesChannel', 'deepLinkCode', 'stateId', 'customFields', 'documents', 'tags', 'affiliateCode',
+        'campaignCode', '_uniqueIdentifier', 'versionId', 'translated', 'extensions', 'billingAddressVersionId',
     ];
 
     /**
@@ -97,7 +83,7 @@ class ClarobiOrderController extends ClarobiAbstractController
      * @param Request $request
      * @return JsonResponse
      */
-    public function listAction(Request $request): JsonResponse
+    public function listAction(Request $request)
     {
         try {
             // Verify token request
@@ -114,10 +100,7 @@ class ClarobiOrderController extends ClarobiAbstractController
                 ->addAssociation('lineItems.product.categories')
                 ->addAssociation('lineItems.product.properties.group.translations')
                 ->addAssociation('lineItems.product.options.group.translations')
-//                ->addAssociation('lineItems.product.parent')
                 ->addAssociation('deliveries.shippingMethod')
-//                ->addAssociation('deliveries.shippingOrderAddress.country')
-//                ->addAssociation('deliveries.shippingOrderAddress.countryState')
                 ->addAssociation('addresses.country')
                 ->addAssociation('addresses.countryState')
                 ->addAssociation('transactions.paymentMethod')
@@ -129,7 +112,7 @@ class ClarobiOrderController extends ClarobiAbstractController
 
             $mappedEntities = [];
             $lastId = 0;
-            if($entities->getElements()){
+            if ($entities->getElements()) {
                 /** @var OrderEntity $element */
                 foreach ($entities->getElements() as $element) {
                     $mappedEntities[] = $this->mapOrderEntity($element->jsonSerialize());

@@ -57,9 +57,8 @@ class ClarobiDocumentsController extends ClarobiAbstractController
 
     const IGNORED_KEYS = [
 //        'id', 'order', 'config', 'sent', 'static', 'documentType', 'createdAt', 'updatedAt',
-        'fileType',
-        'orderId', 'orderVersionId', 'documentTypeId', 'documentMediaFileId', 'deepLinkCode', 'customFields',
-        'referencedDocumentId', 'referencedDocument', 'dependentDocuments', 'documentMediaFile',
+        'fileType', 'orderId', 'orderVersionId', 'documentTypeId', 'documentMediaFileId', 'deepLinkCode',
+        'customFields', 'referencedDocumentId', 'referencedDocument', 'dependentDocuments', 'documentMediaFile',
         '_uniqueIdentifier', 'versionId', 'translated', 'extensions',
     ];
 
@@ -89,10 +88,11 @@ class ClarobiDocumentsController extends ClarobiAbstractController
 
     /**
      * @Route("/clarobi/document", name="clarobi.document.list", methods={"GET"})
+     *
      * @param Request $request
      * @return JsonResponse
      */
-    public function listAction(Request $request): JsonResponse
+    public function listAction(Request $request)
     {
         try {
             // Verify request
@@ -100,13 +100,6 @@ class ClarobiDocumentsController extends ClarobiAbstractController
             $this->verifyToken($request, $this->config->getConfigs());
             // Get param
             $from_id = $request->get('from_id');
-
-//            $selectIdAutoInc = $this->connection->executeQuery('
-//                    SELECT `id`, `clarobi_auto_increment`
-//                    FROM `document`
-//                    WHERE `clarobi_auto_increment` > ' . $from_id . '
-//                    ORDER BY `clarobi_auto_increment` ASC LIMIT 50 ;
-//            ');
 
             // Get only 2 types of documents
             $selectIdAutoInc = $this->connection->executeQuery("
@@ -171,7 +164,6 @@ class ClarobiDocumentsController extends ClarobiAbstractController
         $mappedKeys = [];
         $mappedKeys['entity_name'] = self::ENTITY_NAME;
         $mappedKeys['clarobiAutoIncrement'] = $this->incrementIds[$document['id']];
-//            ($this->incrementIds[$document['id']] ? $this->incrementIds[$document['id']] : 0);
 
         foreach ($document as $key => $value) {
             if (in_array($key, self::IGNORED_KEYS)) {

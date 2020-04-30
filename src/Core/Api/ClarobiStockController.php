@@ -16,7 +16,11 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 
-class ClarobiStockController extends  ClarobiAbstractController
+/**
+ * Class ClarobiStockController
+ * @package Clarobi\Core\Api
+ */
+class ClarobiStockController extends ClarobiAbstractController
 {
     const ENTITY_NAME = 'stock';
     const ENTITY_TYPE = 'STOCK';
@@ -63,7 +67,7 @@ class ClarobiStockController extends  ClarobiAbstractController
      * @param Request $request
      * @return JsonResponse
      */
-    public function productCountersAction(Request $request): JsonResponse
+    public function productCountersAction(Request $request)
     {
         try {
             // Verify request
@@ -82,8 +86,7 @@ class ClarobiStockController extends  ClarobiAbstractController
                 $stocks[] = [
                     'id' => $element->getAutoIncrement(),
                     'id_product' => $element->getAutoIncrement(),
-//                    'quantity'=>$element->getAvailableStock(),    // qty after calculating orders?
-                    'quantity'=>$element->getStock()
+                    'quantity' => $element->getStock()
                 ];
             }
             $date = date('Y-m-d H:i:s', time());
@@ -92,7 +95,11 @@ class ClarobiStockController extends  ClarobiAbstractController
                 'stock' => $stocks
             ];
 
-            return new JsonResponse($this->encodeResponse->encodeResponse($data, self::ENTITY_NAME, self::ENTITY_TYPE));
+            return new JsonResponse($this->encodeResponse->encodeResponse(
+                $data,
+                self::ENTITY_NAME,
+                self::ENTITY_TYPE
+            ));
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }

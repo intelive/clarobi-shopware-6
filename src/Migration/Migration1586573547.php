@@ -12,6 +12,14 @@ class Migration1586573547 extends MigrationStep
         return 1586573547;
     }
 
+    /**
+     * Add auto_increment column to `document` table on plugin install.
+     * New column name: `clarobi_auto_increment`
+     * !!!Note: column is not added as extension to DocumentEntity!!!
+     *
+     * @param Connection $connection
+     * @throws \Doctrine\DBAL\DBALException
+     */
     public function update(Connection $connection): void
     {
         $connection->executeUpdate('
@@ -22,6 +30,6 @@ class Migration1586573547 extends MigrationStep
 
     public function updateDestructive(Connection $connection): void
     {
-        // implement update destructive
+        // todo implement drop column on uninstall/delete plugin
     }
 }

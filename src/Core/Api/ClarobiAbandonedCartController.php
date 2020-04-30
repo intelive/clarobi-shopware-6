@@ -83,7 +83,7 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
      * @param Request $request
      * @return JsonResponse
      */
-    public function listAction(Request $request): JsonResponse
+    public function listAction(Request $request)
     {
         try {
             // Verify request
@@ -155,18 +155,8 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
 
                 $item = $lineItem->jsonSerialize();
                 $item['product'] = $product;
-                //An simpler way would be to map the required fields
-//                $item['productAutoIncrement'] = $product->getAutoIncrement();
-//                $item['productNumber'] = $product->getProductNumber();
-                $mappedKeys['lineItems'][] = $item;
 
-//                $mappedKeys['lineItems'][] = [
-//                    'price' => $lineItem->getPrice(),
-//                    'quantity' => $lineItem->getQuantity(),
-//                    'id' => $product->getAutoIncrement(),
-//                    'sku' => $product->getProductNumber(),
-//                    'name' => $lineItem->getLabel(),
-//                ];
+                $mappedKeys['lineItems'][] = $item;
             }
         }
 

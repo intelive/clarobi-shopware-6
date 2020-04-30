@@ -7,6 +7,10 @@ use Shopware\Storefront\Page\Product\ProductPage;
 use Shopware\Storefront\Page\Product\ProductPageLoadedEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
+/**
+ * Class ProductPageLoadSubscriber
+ * @package Clarobi\Subscriber
+ */
 class ProductPageLoadSubscriber implements EventSubscriberInterface
 {
     /**
@@ -14,6 +18,11 @@ class ProductPageLoadSubscriber implements EventSubscriberInterface
      */
     protected $dataUpdate;
 
+    /**
+     * ProductPageLoadSubscriber constructor.
+     *
+     * @param ProductCountsDataUpdate $dataUpdate
+     */
     public function __construct(ProductCountsDataUpdate $dataUpdate)
     {
         $this->dataUpdate = $dataUpdate;

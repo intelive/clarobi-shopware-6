@@ -45,8 +45,7 @@ class ClarobiCustomerController extends ClarobiAbstractController
 
     const IGNORED_KEYS = [
 //        'id', 'autoIncrement', 'firstName', 'lastName', 'email', 'guest', 'createdAt', 'title', 'group',
-//        'defaultBillingAddress', 'defaultShippingAddress', 'birthday',
-//        'salesChannelId',
+//        'defaultBillingAddress', 'defaultShippingAddress', 'birthday', 'salesChannelId',
         'salutation', 'groupId', 'defaultPaymentMethodId',
         'languageId', 'lastPaymentMethodId',
         'defaultBillingAddressId', 'defaultShippingAddressId', 'customerNumber', 'salutationId', 'company', 'password',
@@ -83,7 +82,7 @@ class ClarobiCustomerController extends ClarobiAbstractController
      * @param Request $request
      * @return JsonResponse
      */
-    public function listAction(Request $request): JsonResponse
+    public function listAction(Request $request)
     {
         try {
             // Verify token request
@@ -95,15 +94,12 @@ class ClarobiCustomerController extends ClarobiAbstractController
             $context = Context::createDefaultContext();
             $criteria = new Criteria();
             $criteria->setLimit(50)
-                // gt not gte
                 ->addFilter(new RangeFilter('autoIncrement', ['gt' => $from_id]))
                 ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
                 ->addAssociation('group')
                 ->addAssociation('salutation')
                 ->addAssociation('defaultBillingAddress.country')
-                ->addAssociation('defaultShippingAddress.country')
-//                ->addAssociation('salesChannel')
-            ;
+                ->addAssociation('defaultShippingAddress.country');
 
             /** @var EntityCollection $entities */
             $entities = $this->customerRepository->search($criteria, $context);
@@ -143,15 +139,9 @@ class ClarobiCustomerController extends ClarobiAbstractController
         }
         /** @var SalutationEntity $salutation */
         $salutation = $customer['salutation'];
-        /**
-         * Possible values: not_specified, mr, mrs
-         */
-        $mappedKeys['salutation'] = $salutation->getSalutationKey();
 
-        /**
-         * @todo set store_id to a sales channel
-         */
-//        $mappedKeys['store_id'] = 1;
+        // Possible values: not_specified, mr, mrs
+        $mappedKeys['salutation'] = $salutation->getSalutationKey();
 
         return $mappedKeys;
     }

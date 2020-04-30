@@ -6,7 +6,6 @@ use Clarobi\Utils\EncodeDecode;
 
 /**
  * Class EncodeResponse
- *
  * @package Clarobi\Utils
  */
 class EncodeResponseService
@@ -17,13 +16,13 @@ class EncodeResponseService
     protected $configService;
 
     protected $apiSecret;
+
     protected $apiLicense;
 
     /**
      * EncodeResponse constructor.
      *
-     * @param $secret
-     * @param $license
+     * @param ClarobiConfigService $configService
      */
     public function __construct(ClarobiConfigService $configService)
     {
@@ -40,7 +39,7 @@ class EncodeResponseService
      * @param null $type
      * @return array
      */
-    public function encodeResponse($data, $entityName, $lastId = 0, $type = null): array
+    public function encodeResponse($data, $entityName, $lastId = 0, $type = null)
     {
         $responseIsEncoded = $responseIsCompressed = false;
 
@@ -64,13 +63,13 @@ class EncodeResponseService
         $encodedResponse = [
             'isEncoded' => $responseIsEncoded,
             'isCompressed' => $responseIsCompressed,
-            'rawData' => $originalData,
-//            'data' => $data,
             'license_key' => $this->apiLicense,
+//            'rawData' => $originalData,
+            'data' => $data,
             'entity' => $entityName,
             'type' => ($type ? $type : 'SYNC')
         ];
-        if($lastId){
+        if ($encodedResponse['type'] == 'SYNC') {
             $encodedResponse['lastId'] = $lastId;
         }
 

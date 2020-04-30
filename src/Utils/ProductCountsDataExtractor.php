@@ -2,16 +2,19 @@
 
 namespace Clarobi\Utils;
 
-use Shopware\Core\Checkout\Cart\Event\LineItemAddedEvent;
-use Shopware\Core\Checkout\Cart\Event\LineItemQuantityChangedEvent;
-use Shopware\Core\Checkout\Cart\Event\LineItemRemovedEvent;
-use Shopware\Core\Checkout\Cart\LineItem\LineItem;
-use Shopware\Core\Content\Product\ProductEntity;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Content\Product\ProductEntity;
+use Shopware\Core\Checkout\Cart\LineItem\LineItem;
+use Shopware\Core\Checkout\Cart\Event\LineItemAddedEvent;
+use Shopware\Core\Checkout\Cart\Event\LineItemRemovedEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Storefront\Page\Product\ProductPageLoadedEvent;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Checkout\Cart\Event\LineItemQuantityChangedEvent;
 
+/**
+ * Class ProductCountsDataExtractor
+ * @package Clarobi\Utils
+ */
 class ProductCountsDataExtractor
 {
     /**
@@ -19,6 +22,11 @@ class ProductCountsDataExtractor
      */
     protected $entityRespository;
 
+    /**
+     * ProductCountsDataExtractor constructor.
+     *
+     * @param EntityRepository $entityRepository
+     */
     public function __construct(EntityRepository $entityRepository)
     {
         $this->entityRespository = $entityRepository;
@@ -37,13 +45,15 @@ class ProductCountsDataExtractor
             $itemId = $event->getLineItem()->getId();
             $itemQty = $event->getLineItem()->getQuantity();
             $itemAutoIncrement = $this->getProductAutoIncrement($itemId);
+
+            return [
+                'id' => $itemId,
+                'auto_increment' => $itemAutoIncrement,
+                'quantity' => $itemQty
+            ];
         }
 
-        return [
-            'id' => $itemId,
-            'auto_increment' => $itemAutoIncrement,
-            'quantity' => $itemQty
-        ];
+        return [];
     }
 
     /**
@@ -65,6 +75,7 @@ class ProductCountsDataExtractor
         $criteria = new Criteria([$itemId]);
         $criteria->setLimit(1);
         $productColl = $this->entityRespository->search($criteria, $context)->getEntities();
+
         /** @var ProductEntity $item */
         foreach ($productColl as $item) {
             $itemAutoIncrement = $item->getAutoIncrement();

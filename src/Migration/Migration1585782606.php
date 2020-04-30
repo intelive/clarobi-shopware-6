@@ -12,6 +12,12 @@ class Migration1585782606 extends MigrationStep
         return 1585782606;
     }
 
+    /**
+     * Create `clarobi_product_counts` table on plugin install.
+     *
+     * @param Connection $connection
+     * @throws \Doctrine\DBAL\DBALException
+     */
     public function update(Connection $connection): void
     {
         $connection->executeUpdate('
@@ -32,5 +38,6 @@ class Migration1585782606 extends MigrationStep
 
     public function updateDestructive(Connection $connection): void
     {
+        // todo implement drop table on uninstall/delete plugin
     }
 }

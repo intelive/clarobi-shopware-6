@@ -21,6 +21,11 @@ class ProductCountsDataUpdate
      */
     private $connection;
 
+    /**
+     * ProductCountsDataUpdate constructor.
+     *
+     * @param Connection $connection
+     */
     public function __construct(Connection $connection)
     {
         $this->connection = $connection;
@@ -39,12 +44,6 @@ class ProductCountsDataUpdate
     {
         $date = date('Y-m-d H:i:s', time());
 
-//        $sql = "INSERT INTO clarobi_product_counts (`product_id`, `productAutoIncrement`, `{$column}`,`date_add`)
-//                VALUES (`{$productId}`,`{$productAutoIncrement}`,`{$count}`,`{$date}`)
-//                ON DUPLICATE KEY
-//                UPDATE `{$column}`  =  `{$column}` {$operation} `{$count}`, `date_update` = `{$date}`";
-
-
         $sql = "INSERT INTO " . self::PRODUCT_COUNTER_TABLE
             . " (`product_id`, `product_auto_increment`, `{$column}`,`created_at`)
                 VALUES (?,?,?,?)
@@ -53,10 +52,10 @@ class ProductCountsDataUpdate
 
         try {
             $productIdBinary = Uuid::fromHexToBytes($productId);
-           $result =  $this->connection->executeUpdate(
-               $sql,
-               [$productIdBinary, $productAutoIncrement, $count, $date, $count, $date]
-           );
+            $this->connection->executeUpdate(
+                $sql,
+                [$productIdBinary, $productAutoIncrement, $count, $date, $count, $date]
+            );
         } catch (DBALException $exception) {
             /**
              * @todo log in db.log file

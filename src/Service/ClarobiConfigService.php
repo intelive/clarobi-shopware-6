@@ -20,6 +20,11 @@ class ClarobiConfigService
         $this->systemConfigService = $systemConfigService;
     }
 
+    /**
+     * Return array of configs.
+     *
+     * @return array
+     */
     public function getConfigs()
     {
         return [

@@ -51,21 +51,15 @@ class ClarobiProductController extends ClarobiAbstractController
     const IGNORED_KEYS = [
 //        'autoIncrement', 'active', 'productNumber', 'stock', 'availableStock', 'available', 'name',
 //        'visibilities', 'createdAt', 'updatedAt', 'id', 'price', 'childCount',
-        'parentId', 'parent',
-        'optionIds', 'propertyIds',
-        'properties',
-        'options',
-        'children',
-        'variantRestrictions',
-        'categories',
-        'categoryTree', 'taxId', 'manufacturerId', 'unitId', 'displayGroup', 'media',
+        'parentId', 'parent', 'optionIds', 'propertyIds', 'properties', 'options', 'children', 'variantRestrictions',
+        'categories', 'categoryTree', 'taxId', 'manufacturerId', 'unitId', 'displayGroup', 'media',
         'manufacturerNumber', 'ean', 'deliveryTimeId', 'deliveryTime', 'restockTime', 'isCloseout', 'purchaseSteps',
         'maxPurchase', 'minPurchase', 'purchaseUnit', 'referenceUnit', 'shippingFree', 'purchasePrice',
         'markAsTopseller', 'weight', 'width', 'height', 'length', 'releaseDate', 'keywords', 'description',
         'metaDescription', 'metaTitle', 'packUnit', 'configuratorGroupConfig', 'tax', 'manufacturer', 'unit', 'prices',
-        'listingPrices', 'cover', 'searchKeywords', 'translations', 'tags', 'configuratorSettings',
-        'categoriesRo', 'coverId', 'blacklistIds', 'whitelistIds', 'customFields', 'tagIds', 'productReviews',
-        'ratingAverage', 'mainCategories', 'seoUrls', 'orderLineItems', 'crossSellings', 'crossSellingAssignedProducts',
+        'listingPrices', 'cover', 'searchKeywords', 'translations', 'tags', 'configuratorSettings', 'categoriesRo',
+        'coverId', 'blacklistIds', 'whitelistIds', 'customFields', 'tagIds', 'productReviews', 'ratingAverage',
+        'mainCategories', 'seoUrls', 'orderLineItems', 'crossSellings', 'crossSellingAssignedProducts',
         '_uniqueIdentifier', 'versionId', 'translated', 'extensions', 'parentVersionId', 'productManufacturerVersionId',
         'productMediaVersionId'
     ];
@@ -96,7 +90,7 @@ class ClarobiProductController extends ClarobiAbstractController
      * @param Request $request
      * @return JsonResponse
      */
-    public function listAction(Request $request): JsonResponse
+    public function listAction(Request $request)
     {
         try {
             // Verify request
@@ -112,17 +106,14 @@ class ClarobiProductController extends ClarobiAbstractController
                 ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
                 ->addAssociation('options.group.translations')
                 ->addAssociation('properties.group.translations')
-                ->addAssociation('children.options.group.translations')
-//                ->addAssociation('children.properties.group')
-//                ->addAssociation('parent')
-            ;
+                ->addAssociation('children.options.group.translations');
 
             /** @var EntityCollection $entities */
             $entities = $this->productRepository->search($criteria, $context);
 
             $mappedEntities = [];
             $lastId = 0;
-            if($entities->getElements()){
+            if ($entities->getElements()) {
                 /** @var ProductEntity $element */
                 foreach ($entities->getElements() as $element) {
                     // map by ignoring keys
@@ -167,9 +158,6 @@ class ClarobiProductController extends ClarobiAbstractController
 
         $options = $this->mapperHelper->getProductOptions($product);
         $properties = $this->mapperHelper->mapOptionCollection($product['properties']);
-
-//        $mappedKeys['options'] = $options;
-//        $mappedKeys['properties'] = $this->mapperHelper->propertiesToMultiValues($properties);
 
         $mappedKeys['options'] = $this->mapperHelper->mergeOptionsAndProperties($options, $properties);
 

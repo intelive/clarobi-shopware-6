@@ -9,6 +9,10 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
 
+/**
+ * Class ClarobiDataCountersController
+ * @package Clarobi\Core\Api
+ */
 class ClarobiDataCountersController extends ClarobiAbstractController
 {
     // auto_increment
@@ -41,12 +45,12 @@ class ClarobiDataCountersController extends ClarobiAbstractController
     /**
      * @RouteScope(scopes={"storefront"})
      * @Route("/clarobi/dataCounters", name="clarobi.action.data.counters", methods={"GET"})
+     *
+     * @return JsonResponse
+     * @throws \Doctrine\DBAL\DBALException
      */
     public function dataCountersAction()
     {
-        /**
-         * @todo get cat id after extending it
-         */
         $productQuery = $this->connection->executeQuery(self::SELECT . '`product`' . self::ORDER_BY)->fetch();
         $customerQuery = $this->connection->executeQuery(self::SELECT . '`customer`' . self::ORDER_BY)->fetch();
         $orderQuery = $this->connection->executeQuery(self::SELECT . '`order`' . self::ORDER_BY)->fetch();

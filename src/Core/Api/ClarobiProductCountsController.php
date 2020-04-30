@@ -11,6 +11,10 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
 
+/**
+ * Class ClarobiProductCountsController
+ * @package Clarobi\Core\Api
+ */
 class ClarobiProductCountsController extends ClarobiAbstractController
 {
     const ENTITY_NAME = 'product_counter';
@@ -32,6 +36,7 @@ class ClarobiProductCountsController extends ClarobiAbstractController
      * @var ClarobiConfigService
      */
     protected $configService;
+
     protected $configs;
 
     /**
@@ -60,7 +65,7 @@ class ClarobiProductCountsController extends ClarobiAbstractController
      * @param Request $request
      * @return JsonResponse
      */
-    public function productCountersAction(Request $request): JsonResponse
+    public function productCountersAction(Request $request)
     {
         try {
             // Verify request
@@ -90,6 +95,7 @@ class ClarobiProductCountsController extends ClarobiAbstractController
                     ];
                 }
             }
+
             return new JsonResponse($this->encodeResponse->encodeResponse($data, self::ENTITY_NAME, self::ENTITY_TYPE));
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);

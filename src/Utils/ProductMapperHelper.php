@@ -16,15 +16,17 @@ use Shopware\Core\Content\Property\Aggregate\PropertyGroupOption\PropertyGroupOp
  */
 class ProductMapperHelper
 {
+    /**
+     * @var Connection
+     */
     protected $connection;
 
     /**
-     * ClarobiOrderController constructor.
+     * ProductMapperHelper constructor.
      *
+     * @param Connection $connection
      */
-    public function __construct(
-        Connection $connection
-    )
+    public function __construct(Connection $connection)
     {
         $this->connection = $connection;
     }
@@ -56,41 +58,17 @@ class ProductMapperHelper
     }
 
     /**
-     * @param array $properties
-     * @return array
-     */
-    public function propertiesToMultiValues($properties)
-    {
-        $propertiesArray = [];
-
-        foreach ($properties as $property) {
-            if (!key_exists($property['label'], $propertiesArray)) {
-                $propertiesArray[$property['label']] = [
-                    'value' => $property['value'],
-                    'attribute_id' => $property['attribute_id']
-                ];
-            } else {
-                $oldValues = explode(', ', $propertiesArray[$property['label']]['value']);
-                $oldValues[] = $property['value'];
-                $propertiesArray[$property['label']]['value'] = implode(', ', $oldValues);
-            }
-        }
-
-        return $propertiesArray;
-    }
-
-    /**
      * @param $product
      * @return array
      */
     public function getProductOptions($product)
     {
         $optionsArray = [];
-        // if product is simple - get options
+        // If product is simple - get options
         if (!$product['childCount']) {
             $optionsArray = $this->mapOptionCollection($product['options']);
         } else {
-            // for each children - get options
+            // For each children - get options
             /** @var ProductCollection $children */
             $children = $product['children'];
             foreach ($children->getElements() as $element) {
@@ -108,9 +86,7 @@ class ProductMapperHelper
      */
     public function mapOptionCollection(PropertyGroupOptionCollection $options)
     {
-        /**
-         * Add options to every line item
-         * "options":{
+        /** "options":{
          *      "attribute_id": "1",
          *      "item_id": "381", #order item id,// to be set in client
          *      "label": "Manufacturer",
@@ -155,10 +131,8 @@ class ProductMapperHelper
                 // Map product to get less data
                 unset($item['product']);
 
-//                $options = $this->getProductOptions($product->jsonSerialize());
                 $options = $this->mapOptionCollection($product->getOptions());
                 $properties = $this->mapOptionCollection($product->getProperties());
-//                $mappedProp = $this->propertiesToMultiValues($properties);
 
                 $parentAutoIncrement = $parentProductNumber = null;
                 if ($product->getParentId()) {
@@ -183,8 +157,6 @@ class ProductMapperHelper
                         'productNumber' => $parentProductNumber
                     ],
                     'options' => $this->mergeOptionsAndProperties($options, $properties)
-//                    'options' => $options,
-//                    'properties' => $mappedProp
                 ];
 
                 $lineItems[] = $item;

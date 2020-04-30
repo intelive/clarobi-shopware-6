@@ -2,6 +2,8 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/platform/master/src/Core/System/SystemConfig/Schema/config.xsd">
 
+    <!--Plugin configuration page-->
+    <!--This is used to save in db ClarobiCredentials-->
     <card>
         <title>Clarobi plugin configuration</title>
 

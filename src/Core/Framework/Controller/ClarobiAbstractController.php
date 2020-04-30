@@ -6,6 +6,10 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
+/**
+ * Class ClarobiAbstractController
+ * @package Clarobi\Core\Framework\Controller
+ */
 abstract class ClarobiAbstractController extends AbstractController
 {
     /**
