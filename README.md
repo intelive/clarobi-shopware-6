@@ -1,113 +1,46 @@
-todo: 
-* docs
-* install page on clarobi
-* repo on github
-* add event on product view
+# ClaroBi
 
-```php
-// ClarobiProductController.php:232
-//        /** @var PriceCollection $priceColl */
-//        $priceColl = $product['price'];
-//        /** @var Price $price */
-//        foreach ($priceColl->getElements() as $price) {
-//            $mappedKeys['price_net'] = $price->getNet();
-//            $mappedKeys['price_gross'] = $price->getGross();
-//            break;
-//        }
-```
+## About
+[ClaroBi][clarobi]
 
-```php
-//    private function mapOrderEntity($order){
-//        foreach ($order as $key => $value) {
-//            echo "'".$key."',\n";
-//        }
-//        die;
-//
-//        return $mappedKeys;
-//    }
-```
+Allows ClaroBi to gather information from Products, Stocks, Orders, Invoices, Customers, Abandoned Carts.  
+This module is available for Shopware6.
 
-```php
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
+#### Product page on Shopware:
+[Clarobi-plugin][addons]
 
- // create a log channel
- $log = new Logger('product');
- try {
-     $log->pushHandler(new StreamHandler(__DIR__ . '/../../product.log', Logger::WARNING));
- } catch (\Exception $e) {
- }
+## Requirements
 
- // add records to the log
- $log->warning('product paged access');
-```
-```php
- // create table for document_extension entity
- $connection->executeQuery('
-        CREATE TABLE IF NOT EXISTS `document_extension` (
-            `id` BINARY(16) NOT NULL,
-        )
-            ENGINE=InnoDB
-            DEFAULT CHARSET=utf8mb4
-            COLLATE=utf8mb4_unicode_ci;
-');
-```
-```php
-            /**
-             * @todo add mapping on multiple levels
-             */
-//            if (is_object($mappedKeys[$key])) {
-//                var_dump($key);
-//                foreach ($mappedKeys[$key] as $key2 => $line) {
-//
-////                    foreach (self::IGNORE_KEYS_IN_LINE_ITEMS[$entity] as $ignore_line_key) {
-////                        if (isset($return[$key][$key2][$ignore_line_key])) {
-////                            unset($return[$key][$key2][$ignore_line_key]);
-////                        }
-////                    }
-//                }
-//            }
-```
-```php
-// function from client
-   /**
-     * @param $options
-     * @param $properties
-     * @param null $itemId
-     * @return array
-     * @todo delete
-     */
-//    protected function compressOptionsPropAttrId($options, $properties, $itemId = null)
-//    {
-//        $mappedOptions = [];
-//        foreach ($options as $option) {
-//            $attrId = (int)gmp_strval(gmp_init(substr(md5($option->attribute_id), 0, 4), 16), 10);
-//            $option->attribute_id = $attrId;
-//            ($itemId ? $option->item_id = $itemId : '');
-//            $mappedOptions[] = $option;
-//        }
-//
-//        // Add properties to options array
-//        foreach ($properties as $label => $property) {
-//            $attrId = (int)gmp_strval(gmp_init(substr(md5($property->attribute_id), 0, 4), 16), 10);
-//            $option = new stdClass();
-//            $option->attribute_id = $attrId;
-//            $option->value = $property->value;
-//            $option->label = $label;
-//            ($itemId ? $option->item_id = $itemId : '');
-//            $mappedOptions[] = $option;
-//        }
-//
-//        return $mappedOptions;
-//    }
+1. PHP version  7.3.x
+2. cURL enabled
 
-// using this function in product and order mapping 
-// Product
-//        $options = $this->compressOptionsPropAttrId($entity->options, $entity->properties);
-// Order - item
-//                        'options' => $this->compressOptionsPropAttrId(
-//                            $lineItem->product->options,
-//                            $lineItem->product->properties,
-//                            $lineItem->product->autoIncrement
-//                        )
-```
+## Installation
+
+To install module on Shopware6, you can clone/download it from our *GitHub* repository.
+
+### Download zip and install
+
+#### Clone repository and install
+
+## Configuration
+
+To configure the module you need to have an account on our website.  
+> If you do not have one, please access [ClaroBi][clarobi] and start your 6 months free trial.  
+After you have successfully registered you will receive from ClariBi 2 keys necessary for authentication   
+>and data encryption ( `API KEY` and `API SECRET` ) and your `LICENSE KEY`.
+
+After you have all the necessary keys, please follow the steps:      
+* In the configuration form, you will need to provide all the data as follows:
+    * `License` key: license key provided by ClaroBi
+    * `Api key`: Api key provided by ClaroBi
+    * `Api secret`: Api secret provided by ClaroBi
+* After all the inputs have been completed, click *Save*.
+
+## Uninstall
+
+
+[clarobi]: https://clarobi.com/
+[clarobi-login]: https://app.clarobi.com/login
+[clarobi-repo]:  https://github.com/intelive/clarobi-shopware
+[addons]: https://www.shopware.com/en/
+
