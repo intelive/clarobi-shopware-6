@@ -42,21 +42,22 @@ class ClarobiCustomerController extends ClarobiAbstractController
     protected $configService;
 
     const ENTITY_NAME = 'customer';
+
     const IGNORED_KEYS = [
 //        'id', 'autoIncrement', 'firstName', 'lastName', 'email', 'guest', 'createdAt', 'title', 'group',
 //        'defaultBillingAddress', 'defaultShippingAddress', 'birthday',
-        'salutation', 'groupId', 'defaultPaymentMethodId', 'salesChannelId', 'languageId', 'lastPaymentMethodId',
+//        'salesChannelId',
+        'salutation', 'groupId', 'defaultPaymentMethodId',
+        'languageId', 'lastPaymentMethodId',
         'defaultBillingAddressId', 'defaultShippingAddressId', 'customerNumber', 'salutationId', 'company', 'password',
         'affiliateCode', 'campaignCode', 'active', 'doubleOptInRegistration', 'doubleOptInEmailSentDate',
         'doubleOptInConfirmDate', 'hash', 'firstLogin', 'lastLogin', 'newsletter', 'lastOrderDate', 'orderCount',
         'updatedAt', 'legacyEncoder', 'legacyPassword', 'defaultPaymentMethod', 'language', 'lastPaymentMethod',
         'activeBillingAddress', 'activeShippingAddress', 'addresses', 'orderCustomers', 'tags', 'promotions',
         'recoveryCustomer', 'customFields', 'productReviews', 'remoteAddress', '_uniqueIdentifier', 'versionId',
-        'translated', 'extensions', 'salesChannel',
+        'translated', 'extensions',
+        'salesChannel',
     ];
-    /**
-     * @todo add mapping on multiple levels
-     */
 
     /**
      * ClarobiCustomerController constructor.
@@ -71,9 +72,6 @@ class ClarobiCustomerController extends ClarobiAbstractController
         EncodeResponseService $responseService
     )
     {
-        /**
-         * @todo : duplicate code - how can ge changed?
-         */
         $this->customerRepository = $customerRepository;
         $this->configService = $configService;
         $this->encodeResponse = $responseService;
@@ -97,22 +95,28 @@ class ClarobiCustomerController extends ClarobiAbstractController
             $context = Context::createDefaultContext();
             $criteria = new Criteria();
             $criteria->setLimit(50)
-                ->addFilter(new RangeFilter('autoIncrement', ['gte' => $from_id]))
+                // gt not gte
+                ->addFilter(new RangeFilter('autoIncrement', ['gt' => $from_id]))
                 ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
                 ->addAssociation('group')
                 ->addAssociation('salutation')
                 ->addAssociation('defaultBillingAddress.country')
-                ->addAssociation('defaultShippingAddress.country');
+                ->addAssociation('defaultShippingAddress.country')
+//                ->addAssociation('salesChannel')
+            ;
 
             /** @var EntityCollection $entities */
             $entities = $this->customerRepository->search($criteria, $context);
 
             $mappedEntities = [];
-            /** @var CustomerEntity $element */
-            foreach ($entities->getElements() as $element) {
-                $mappedEntities[] = $this->mapCustomerEntity($element->jsonSerialize());
+            $lastId = 0;
+            if ($entities->getElements()) {
+                /** @var CustomerEntity $element */
+                foreach ($entities->getElements() as $element) {
+                    $mappedEntities[] = $this->mapCustomerEntity($element->jsonSerialize());
+                }
+                $lastId = $element->getAutoIncrement();
             }
-            $lastId = $element->getAutoIncrement();
 
             return new JsonResponse($this->encodeResponse->encodeResponse(
                 $mappedEntities,
@@ -145,7 +149,7 @@ class ClarobiCustomerController extends ClarobiAbstractController
         $mappedKeys['salutation'] = $salutation->getSalutationKey();
 
         /**
-         * @todo set store_id to a default value ?
+         * @todo set store_id to a sales channel
          */
 //        $mappedKeys['store_id'] = 1;
 

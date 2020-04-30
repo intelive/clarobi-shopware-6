@@ -50,31 +50,17 @@ class ClarobiDocumentsController extends ClarobiAbstractController
     protected $connection;
 
     protected $hexIds = [];
+
     protected $incrementIds = [];
 
     const ENTITY_NAME = 'document';
 
     const IGNORED_KEYS = [
 //        'id', 'order', 'config', 'sent', 'static', 'documentType', 'createdAt', 'updatedAt',
-//        'fileType',
+        'fileType',
         'orderId', 'orderVersionId', 'documentTypeId', 'documentMediaFileId', 'deepLinkCode', 'customFields',
         'referencedDocumentId', 'referencedDocument', 'dependentDocuments', 'documentMediaFile',
         '_uniqueIdentifier', 'versionId', 'translated', 'extensions',
-    ];
-
-    /**
-     * @todo add mapping on multiple levels
-     */
-    const IGNORED_KEY_LEVEL_1 = [
-        'order' => [
-            //'autoIncrement', , 'currencyId', 'orderDateTime', 'orderDate', 'price', 'amountTotal',
-//        'amountNet','currency',  'lineItems',  'shippingTotal','shippingCosts',
-            'createdAt', 'updatedAt', 'id', 'orderNumber', 'addresses', 'deliveries', 'transactions',
-            'currencyFactor', 'salesChannelId', 'billingAddressId', 'positionPrice', 'taxStatus',
-            'languageId', 'language', 'salesChannel', 'deepLinkCode', 'stateMachineState', 'stateId', 'orderCustomer',
-            'customFields', 'documents', 'tags', 'affiliateCode', 'campaignCode', '_uniqueIdentifier', 'versionId',
-            'translated', 'extensions', 'billingAddressVersionId',
-        ]
     ];
 
     /**
@@ -102,15 +88,12 @@ class ClarobiDocumentsController extends ClarobiAbstractController
     }
 
     /**
-     * @Route("/clarobi/documents", name="clarobi.documents.list", methods={"GET"})
+     * @Route("/clarobi/document", name="clarobi.document.list", methods={"GET"})
      * @param Request $request
      * @return JsonResponse
      */
     public function listAction(Request $request): JsonResponse
     {
-        /**
-         * @todo filter documents by type in claro_app
-         */
         try {
             // Verify request
             $this->verifyParam($request);
@@ -118,39 +101,56 @@ class ClarobiDocumentsController extends ClarobiAbstractController
             // Get param
             $from_id = $request->get('from_id');
 
-            $selectIdAutoInc = $this->connection->executeQuery('
-                    SELECT `id`, `clarobi_auto_increment`
-                    FROM `document`
-                    WHERE `clarobi_auto_increment` > ' . $from_id . '
-                    ORDER BY `clarobi_auto_increment` ASC LIMIT 50 ;
-            ');
+//            $selectIdAutoInc = $this->connection->executeQuery('
+//                    SELECT `id`, `clarobi_auto_increment`
+//                    FROM `document`
+//                    WHERE `clarobi_auto_increment` > ' . $from_id . '
+//                    ORDER BY `clarobi_auto_increment` ASC LIMIT 50 ;
+//            ');
+
+            // Get only 2 types of documents
+            $selectIdAutoInc = $this->connection->executeQuery("
+                    SELECT d.`id`, d.`clarobi_auto_increment`
+                    FROM `document` d
+                    JOIN `document_type` dt ON d.document_type_id = dt.id
+                    WHERE d.`clarobi_auto_increment` > {$from_id}
+                    	AND dt.`technical_name` IN ('invoice','credit_note')
+                    ORDER BY d.`clarobi_auto_increment` ASC LIMIT 50 ;
+            ");
+
             $idsResult = $selectIdAutoInc->fetchAll();
 
-            /**
-             * Get array with ids in hex to use them in search
-             * Get array with auto increment ids to used them for from_id param
-             */
+            $mappedEntities = [];
+            $lastId = 0;
+
+            // If ids array is not empty
             if ($idsResult) {
+                // Get array with ids in hex to use them in search
+                // Get array with auto increment ids to used them for from_id param
                 foreach ($idsResult as $item) {
                     $this->hexIds[] = Uuid::fromBytesToHex($item['id']);
                     $this->incrementIds[Uuid::fromBytesToHex($item['id'])] = $item['clarobi_auto_increment'];
                 }
-            }
-            $context = Context::createDefaultContext();
-            $criteria = new Criteria($this->hexIds);
-            $criteria->addAssociation('order')
-                ->addAssociation('order.lineItems')
-                ->addAssociation('order.currency');
 
-            /** @var EntityCollection $entities */
-            $entities = $this->documentRepository->search($criteria, $context);
+                // Get entities
+                $context = Context::createDefaultContext();
+                $criteria = new Criteria($this->hexIds);
+                $criteria->addAssociation('order')
+                    ->addAssociation('order.lineItems')
+                    ->addAssociation('order.lineItems.product')
+                    ->addAssociation('order.currency');
 
-            $mappedEntities = [];
-            /** @var DocumentEntity $element */
-            foreach ($entities->getElements() as $element) {
-                $mappedEntities[] = $this->mapDocumentEntity($element->jsonSerialize());
+                /** @var EntityCollection $entities */
+                $entities = $this->documentRepository->search($criteria, $context);
+
+                if ($entities->getElements()) {
+                    /** @var DocumentEntity $element */
+                    foreach ($entities->getElements() as $element) {
+                        $mappedEntities[] = $this->mapDocumentEntity($element->jsonSerialize());
+                    }
+                    $lastId = $this->incrementIds[$element->getId()];
+                }
             }
-            $lastId = $this->incrementIds[$element->getId()];
 
             return new JsonResponse($this->encodeResponse->encodeResponse(
                 $mappedEntities,
@@ -170,7 +170,7 @@ class ClarobiDocumentsController extends ClarobiAbstractController
     {
         $mappedKeys = [];
         $mappedKeys['entity_name'] = self::ENTITY_NAME;
-        $mappedKeys['clarobi_auto_increment'] = $this->incrementIds[$document['id']];
+        $mappedKeys['clarobiAutoIncrement'] = $this->incrementIds[$document['id']];
 //            ($this->incrementIds[$document['id']] ? $this->incrementIds[$document['id']] : 0);
 
         foreach ($document as $key => $value) {

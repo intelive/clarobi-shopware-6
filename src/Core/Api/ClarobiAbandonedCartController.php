@@ -7,6 +7,7 @@ use Shopware\Core\Framework\Context;
 use Shopware\Core\Checkout\Cart\Cart;
 use Clarobi\Service\ClarobiConfigService;
 use Clarobi\Service\EncodeResponseService;
+use Shopware\Core\Framework\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Core\Content\Product\ProductEntity;
@@ -48,17 +49,13 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
         'name',
         'token',
 //        'price',
-        'lineItems',
+//        'lineItems',
         'errors',
         'deliveries',
         'transactions',
         'modified',
         'extensions',
     ];
-
-    /**
-     * @todo add mapping on multiple levels
-     */
 
     /**
      * ClarobiAbandonedCartController constructor.
@@ -114,6 +111,7 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
 
                     $mappedCart = $this->mapCartEntity($cart->jsonSerialize());
                     $mappedCart['clarobi_auto_increment'] = $result['clarobi_auto_increment'];
+                    $mappedCart['salesChannelId'] = Uuid::fromBytesToHex($result['sales_channel_id']);
 
                     $mappedEntities[] = $mappedCart;
                 }
@@ -149,17 +147,27 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
         $mappedKeys['lineItems'] = [];
         /** @var LineItem $lineItem */
         foreach ($cart['lineItems'] as $lineItem) {
-            $criteria = new Criteria([$lineItem->getId()]);
-            /** @var ProductEntity $product */
-            $product = $this->productRepository->search($criteria, Context::createDefaultContext())->first();
+            // Do not get promotions or other line item type
+            if ($lineItem->getType() == 'product') {
+                $criteria = new Criteria([$lineItem->getId()]);
+                /** @var ProductEntity $product */
+                $product = $this->productRepository->search($criteria, Context::createDefaultContext())->first();
 
-            $mappedKeys['lineItems'][] = [
-                'price' => $lineItem->getPrice(),
-                'quantity' => $lineItem->getQuantity(),
-                'id' => $product->getAutoIncrement(),
-                'sku' => $product->getProductNumber(),
-                'name' => $lineItem->getLabel(),
-            ];
+                $item = $lineItem->jsonSerialize();
+                $item['product'] = $product;
+                //An simpler way would be to map the required fields
+//                $item['productAutoIncrement'] = $product->getAutoIncrement();
+//                $item['productNumber'] = $product->getProductNumber();
+                $mappedKeys['lineItems'][] = $item;
+
+//                $mappedKeys['lineItems'][] = [
+//                    'price' => $lineItem->getPrice(),
+//                    'quantity' => $lineItem->getQuantity(),
+//                    'id' => $product->getAutoIncrement(),
+//                    'sku' => $product->getProductNumber(),
+//                    'name' => $lineItem->getLabel(),
+//                ];
+            }
         }
 
         return $mappedKeys;
