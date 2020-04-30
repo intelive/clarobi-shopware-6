@@ -2,11 +2,7 @@
 
 namespace Clarobi\Core\Api;
 
-use Shopware\Core\Checkout\Order\Aggregate\OrderAddress\OrderAddressCollection;
-use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryCollection;
-use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryEntity;
-use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
-use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionCollection;
+use Clarobi\Utils\ProductMapperHelper;
 use Shopware\Core\Framework\Context;
 use Clarobi\Service\ClarobiConfigService;
 use Clarobi\Service\EncodeResponseService;
@@ -21,6 +17,9 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\RangeFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
+use Shopware\Core\Checkout\Order\Aggregate\OrderAddress\OrderAddressCollection;
+use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryCollection;
+use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionCollection;
 
 /**
  * Class ClarobiOrderController
@@ -38,22 +37,28 @@ class ClarobiOrderController extends ClarobiAbstractController
     /**
      * @var EncodeResponseService
      */
-    protected $encodeResponse;
+    protected $encoder;
 
     /**
      * @var ClarobiConfigService
      */
     protected $configService;
 
+    protected $mapperHelper;
+
     const ENTITY_NAME = 'sales_order';
 
     const IGNORED_KEYS = [
-//        'id', 'autoIncrement', 'orderNumber', 'currencyId', 'orderDateTime', 'orderDate',
+//        'id', 'autoIncrement', 'orderNumber',
+//      'orderDateTime', 'orderDate',
 //        'price', 'amountTotal', 'shippingCosts',
-//        'amountNet', 'orderCustomer', 'currency', 'lineItems',
+//        'amountNet', 'orderCustomer',
 //        'createdAt', 'updatedAt', 'shippingTotal',
-        'transactions',
 
+        'currencyId',
+        'currency',
+        'lineItems',
+        'transactions',
         'deliveries',
         'addresses',
         'currencyFactor', 'salesChannelId',
@@ -63,15 +68,6 @@ class ClarobiOrderController extends ClarobiAbstractController
         'languageId', 'language', 'salesChannel', 'deepLinkCode', 'stateId',
         'customFields', 'documents', 'tags', 'affiliateCode', 'campaignCode', '_uniqueIdentifier', 'versionId',
         'translated', 'extensions', 'billingAddressVersionId',
-    ];
-
-    const IGNORED_KEYS_LEVEL_1 = [
-        'price' => [],
-        'orderCustomer' => [],
-//        'addresses' => [],
-//        'deliveries' => [],
-        'lineItems' => [],
-//        'transactions' => []
     ];
 
     /**
@@ -84,12 +80,14 @@ class ClarobiOrderController extends ClarobiAbstractController
     public function __construct(
         EntityRepositoryInterface $orderRepository,
         ClarobiConfigService $configService,
-        EncodeResponseService $responseService
+        EncodeResponseService $responseService,
+        ProductMapperHelper $mapperHelper
     )
     {
         $this->orderRepository = $orderRepository;
         $this->configService = $configService;
-        $this->encodeResponse = $responseService;
+        $this->encoder = $responseService;
+        $this->mapperHelper = $mapperHelper;
     }
 
     /**
@@ -110,11 +108,12 @@ class ClarobiOrderController extends ClarobiAbstractController
             $context = Context::createDefaultContext();
             $criteria = new Criteria();
             $criteria->setLimit(50)
-                ->addFilter(new RangeFilter('autoIncrement', ['gte' => $from_id]))
+                ->addFilter(new RangeFilter('autoIncrement', ['gt' => $from_id]))
                 ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
                 ->addAssociation('lineItems.product.categories')
-                ->addAssociation('lineItems.product.properties')
-                ->addAssociation('lineItems.product.parent')
+                ->addAssociation('lineItems.product.properties.group.translations')
+                ->addAssociation('lineItems.product.options.group.translations')
+//                ->addAssociation('lineItems.product.parent')
                 ->addAssociation('deliveries.shippingMethod')
 //                ->addAssociation('deliveries.shippingOrderAddress.country')
 //                ->addAssociation('deliveries.shippingOrderAddress.countryState')
@@ -124,21 +123,20 @@ class ClarobiOrderController extends ClarobiAbstractController
                 ->addAssociation('orderCustomer.customer.group')
                 ->addAssociation('currency');
 
-            /**
-             * @todo load product parent
-             */
-
             /** @var OrderCollection $entities */
             $entities = $this->orderRepository->search($criteria, $context);
 
             $mappedEntities = [];
-            /** @var OrderEntity $element */
-            foreach ($entities->getElements() as $element) {
-                $mappedEntities[] = $this->mapOrderEntity($element->jsonSerialize());
+            $lastId = 0;
+            if($entities->getElements()){
+                /** @var OrderEntity $element */
+                foreach ($entities->getElements() as $element) {
+                    $mappedEntities[] = $this->mapOrderEntity($element->jsonSerialize());
+                }
+                $lastId = $element->getAutoIncrement();
             }
-            $lastId = $element->getAutoIncrement();
 
-            return new JsonResponse($this->encodeResponse->encodeResponse(
+            return new JsonResponse($this->encoder->encodeResponse(
                 $mappedEntities,
                 self::ENTITY_NAME,
                 $lastId
@@ -151,6 +149,7 @@ class ClarobiOrderController extends ClarobiAbstractController
     /**
      * @param $order
      * @return mixed
+     * @throws \Doctrine\DBAL\DBALException
      */
     private function mapOrderEntity($order)
     {
@@ -162,6 +161,8 @@ class ClarobiOrderController extends ClarobiAbstractController
             $mappedKeys[$key] = $value;
         }
 
+        // Get currency
+        $mappedKeys['currency_isoCode'] = $order['currency']->getIsoCode();
         // Get order status
         $mappedKeys['status'] = $order['stateMachineState']->getTechnicalName();
 
@@ -188,25 +189,8 @@ class ClarobiOrderController extends ClarobiAbstractController
             }
         }
 
-        // If line item is of type 'product' add parent
-        // More mapping may be done to reduce data
-        /** @var OrderLineItemEntity $lineItem */
-//        foreach ($order['lineItems'] as $lineItem) {
-//            $serialize = $lineItem->jsonSerialize();
-//            if($lineItem->getType() == 'product'){
-//                $serialize['parent'] = $lineItem->getPa
-//            }
-//        }
-
-        /**
-         * Add options to every line item
-         * "options":{
-         *      "attribute_id": "1",
-         *      "item_id": "381", #order item id,
-         *      "label": "Manufacturer",
-         *      "value": "Made In China"
-         * }
-         */
+        // Get mapped line items
+        $mappedKeys['lineItems'] = $this->mapperHelper->mapOrderLineItems($order);
 
         return $mappedKeys;
     }

@@ -32,6 +32,7 @@
             <argument type="service" id="product.repository"/>
             <argument type="service" id="clarobi.service.config"/>
             <argument type="service" id="clarobi.service.encode_response"/>
+            <argument type="service" id="clarobi.product_mapper_helper"/>
             <tag name="controller.service_arguments"/>
         </service>
 
@@ -46,6 +47,7 @@
             <argument type="service" id="order.repository"/>
             <argument type="service" id="clarobi.service.config"/>
             <argument type="service" id="clarobi.service.encode_response"/>
+            <argument type="service" id="clarobi.product_mapper_helper"/>
             <tag name="controller.service_arguments"/>
         </service>
 
@@ -94,6 +96,10 @@
 
         <service id="Clarobi\Utils\ProductCountsDataExtractor">
             <argument type="service" id="product.repository"/>
+        </service>
+
+        <service id="clarobi.product_mapper_helper" class="Clarobi\Utils\ProductMapperHelper">
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
         </service>
 
     </services>

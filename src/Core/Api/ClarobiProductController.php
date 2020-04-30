@@ -2,10 +2,8 @@
 
 namespace Clarobi\Core\Api;
 
-use Shopware\Core\Content\Product\ProductCollection;
-use Shopware\Core\Content\Property\Aggregate\PropertyGroupOption\PropertyGroupOptionCollection;
-use Shopware\Core\Content\Property\Aggregate\PropertyGroupOption\PropertyGroupOptionEntity;
 use Shopware\Core\Framework\Context;
+use Clarobi\Utils\ProductMapperHelper;
 use Clarobi\Service\ClarobiConfigService;
 use Clarobi\Service\EncodeResponseService;
 use Symfony\Component\HttpFoundation\Request;
@@ -43,18 +41,24 @@ class ClarobiProductController extends ClarobiAbstractController
      */
     protected $configService;
 
+    /**
+     * @var ProductMapperHelper
+     */
+    protected $mapperHelper;
+
     const ENTITY_NAME = 'product';
 
     const IGNORED_KEYS = [
 //        'autoIncrement', 'active', 'productNumber', 'stock', 'availableStock', 'available', 'name',
-//        'variantRestrictions',
-        'options',
-// 'visibilities', 'createdAt', 'updatedAt', 'id', 'price', 'childCount',
-        'children',
-//        'parentId', 'parent',
-        'optionIds', 'media',
+//        'visibilities', 'createdAt', 'updatedAt', 'id', 'price', 'childCount',
+        'parentId', 'parent',
+        'optionIds', 'propertyIds',
         'properties',
-        'propertyIds', 'categories', 'categoryTree', 'taxId', 'manufacturerId', 'unitId', 'displayGroup',
+        'options',
+        'children',
+        'variantRestrictions',
+        'categories',
+        'categoryTree', 'taxId', 'manufacturerId', 'unitId', 'displayGroup', 'media',
         'manufacturerNumber', 'ean', 'deliveryTimeId', 'deliveryTime', 'restockTime', 'isCloseout', 'purchaseSteps',
         'maxPurchase', 'minPurchase', 'purchaseUnit', 'referenceUnit', 'shippingFree', 'purchasePrice',
         'markAsTopseller', 'weight', 'width', 'height', 'length', 'releaseDate', 'keywords', 'description',
@@ -76,12 +80,14 @@ class ClarobiProductController extends ClarobiAbstractController
     public function __construct(
         EntityRepositoryInterface $productRepository,
         ClarobiConfigService $configService,
-        EncodeResponseService $responseService
+        EncodeResponseService $responseService,
+        ProductMapperHelper $mapperHelper
     )
     {
         $this->productRepository = $productRepository;
         $this->configService = $configService;
         $this->encodeResponse = $responseService;
+        $this->mapperHelper = $mapperHelper;
     }
 
     /**
@@ -102,23 +108,28 @@ class ClarobiProductController extends ClarobiAbstractController
             $context = Context::createDefaultContext();
             $criteria = new Criteria();
             $criteria->setLimit(50)
-                ->addFilter(new RangeFilter('autoIncrement', ['gte' => $from_id]))
+                ->addFilter(new RangeFilter('autoIncrement', ['gt' => $from_id]))
                 ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
-                ->addAssociation('options.group')
-                ->addAssociation('properties.group')
-                ->addAssociation('children.options.group')
-                ->addAssociation('children.properties.group');
+                ->addAssociation('options.group.translations')
+                ->addAssociation('properties.group.translations')
+                ->addAssociation('children.options.group.translations')
+//                ->addAssociation('children.properties.group')
+//                ->addAssociation('parent')
+            ;
 
             /** @var EntityCollection $entities */
             $entities = $this->productRepository->search($criteria, $context);
 
             $mappedEntities = [];
-            /** @var ProductEntity $element */
-            foreach ($entities->getElements() as $element) {
-                // map by ignoring keys
-                $mappedEntities[] = $this->mapProductEntity($element->jsonSerialize());
+            $lastId = 0;
+            if($entities->getElements()){
+                /** @var ProductEntity $element */
+                foreach ($entities->getElements() as $element) {
+                    // map by ignoring keys
+                    $mappedEntities[] = $this->mapProductEntity($element->jsonSerialize());
+                }
+                $lastId = $element->getAutoIncrement();
             }
-            $lastId = $element->getAutoIncrement();
 
             return new JsonResponse($this->encodeResponse->encodeResponse(
                 $mappedEntities,
@@ -149,88 +160,19 @@ class ClarobiProductController extends ClarobiAbstractController
             $criteria = new Criteria([$product['parentId']]);
             /** @var ProductEntity $parentProduct */
             $parentProduct = $this->productRepository->search($criteria, Context::createDefaultContext())->first();
-            $mappedKeys['parent_auto_increment'] = $parentProduct->getAutoIncrement();
+            $mappedKeys['parentAutoIncrement'] = $parentProduct->getAutoIncrement();
         } else {
-            $mappedKeys['parent_auto_increment'] = 0;
+            $mappedKeys['parentAutoIncrement'] = null;
         }
 
-        $options = $this->getProductOptions($product);
-        $properties = $this->mapPropertiesArray(
-            $this->mapPropertyGroupOptionCollection($product['properties'])
-        );
+        $options = $this->mapperHelper->getProductOptions($product);
+        $properties = $this->mapperHelper->mapOptionCollection($product['properties']);
 
-        $mappedKeys['options'] = $options;
-        $mappedKeys['properties'] = $properties;
+//        $mappedKeys['options'] = $options;
+//        $mappedKeys['properties'] = $this->mapperHelper->propertiesToMultiValues($properties);
+
+        $mappedKeys['options'] = $this->mapperHelper->mergeOptionsAndProperties($options, $properties);
+
         return $mappedKeys;
-    }
-
-    /**
-     * @param $product
-     * @return array
-     */
-    private function getProductOptions($product)
-    {
-        $optionsArray = [];
-        // if product is simple - get options
-        if (!$product['childCount']) {
-            $optionsArray = $this->mapPropertyGroupOptionCollection($product['options']);
-        } else {
-            // for each children - get options
-            /** @var ProductCollection $children */
-            $children = $product['children'];
-            foreach ($children->getElements() as $element) {
-                $optionsArray = array_merge($optionsArray, $this->mapPropertyGroupOptionCollection($element->getOptions()));
-            }
-        }
-
-        return array_unique($optionsArray, SORT_REGULAR);
-    }
-
-    /**
-     * @param array $properties
-     * @return array
-     */
-    private function mapPropertiesArray($properties)
-    {
-        $propertiesArray = [];
-
-        foreach ($properties as $property) {
-            if (!key_exists($property['label'], $propertiesArray)) {
-                $propertiesArray[$property['label']] = $property['value'];
-            } else {
-                $oldValues = explode(', ', $propertiesArray[$property['label']]);
-                $oldValues[] = $property['value'];
-                $propertiesArray[$property['label']] = implode(', ',$oldValues);
-            }
-        }
-
-        return $propertiesArray;
-    }
-
-    /**
-     * @param PropertyGroupOptionCollection $options
-     * @return array
-     */
-    private function mapPropertyGroupOptionCollection(PropertyGroupOptionCollection $options)
-    {
-        $mappedOptions = [];
-        $serOptions = $options->jsonSerialize();
-
-        /** @var PropertyGroupOptionEntity $option */
-        foreach ($serOptions as $option) {
-            $mappedOptions[] = [
-                'value' => $option->getName(),
-                'label' => $option->getGroup()->getName()
-            ];
-
-//            $serOpt = $option->jsonSerialize();
-//            $group = $option->getGroup()->jsonSerialize();
-//            $mappedOptions[] = [
-//                'value' => $serOpt['name'],
-//                'label' => $group['name']
-//            ];
-        }
-
-        return $mappedOptions;
     }
 }
