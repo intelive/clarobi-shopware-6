@@ -93,27 +93,20 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
             $from_id = $request->get('from_id');
 
             // Get carts created 2 days ago
-            $resultStatement = $this->connection->executeQuery('
-                    SELECT * FROM `cart`
-                    WHERE DATE (`created_at`) <= DATE_SUB(DATE(NOW()), INTERVAL 2 DAY)
-                        AND `clarobi_auto_increment` >= ' . $from_id . '
-                    ORDER BY `clarobi_auto_increment` ASC
+            $stm = $this->connection->executeQuery("
+                    SELECT cart.`*`FROM `cart`
+                    WHERE cart.`clarobi_auto_increment` >= {$from_id}
+                        AND DATE(cart.`created_at`) = DATE_SUB(DATE(NOW()), INTERVAL 1 DAY)
+                    ORDER BY cart.`clarobi_auto_increment` ASC
                     LIMIT 50;
-            ');
-            $results = $resultStatement->fetchAll();
+            ");
+            $results = $stm->fetchAll();
 
             $mappedEntities = [];
             $lastId = 0;
             if ($results) {
                 foreach ($results as $result) {
-                    /** @var Cart $cart */
-                    $cart = unserialize($result['cart']);
-
-                    $mappedCart = $this->mapCartEntity($cart->jsonSerialize());
-                    $mappedCart['clarobi_auto_increment'] = $result['clarobi_auto_increment'];
-                    $mappedCart['salesChannelId'] = Uuid::fromBytesToHex($result['sales_channel_id']);
-
-                    $mappedEntities[] = $mappedCart;
+                    $mappedEntities[] = $this->mapCartEntity($result);
                 }
                 $lastId = ($result ? $result['clarobi_auto_increment'] : 0);
             }
@@ -133,9 +126,18 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
      * @param $cart
      * @return mixed
      */
-    private function mapCartEntity($cart)
+    private function mapCartEntity($result)
     {
+        /** @var Cart $cart */
+        $cart = unserialize($result['cart']);
+        $cart = $cart->jsonSerialize();
+
         $mappedKeys['entity_name'] = self::ENTITY_NAME;
+        $mappedKeys['clarobi_auto_increment'] = $result['clarobi_auto_increment'];
+        $mappedKeys['customerId'] = $this->getCustomerAutoIncrement($result['customer_id']);
+        $mappedKeys['createdAt'] = $result['created_at'];
+        $mappedKeys['salesChannelId'] = Uuid::fromBytesToHex($result['sales_channel_id']);
+
 
         foreach ($cart as $key => $value) {
             if (in_array($key, self::IGNORED_KEYS)) {
@@ -161,5 +163,24 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
         }
 
         return $mappedKeys;
+    }
+
+    private function getCustomerAutoIncrement($customerId)
+    {
+        if ($customerId) {
+            $customerId = Uuid::fromBytesToHex($customerId);
+            $stm = $this->connection->executeQuery("
+                    SELECT `auto_increment` FROM `customer`
+                    WHERE customer.`id` = 0x" . $customerId . "
+                    LIMIT 1;
+            ");
+            $result = $stm->fetchAll();
+
+            if ($result[0]) {
+                return $result[0]['auto_increment'];
+            }
+        }
+
+        return null;
     }
 }
