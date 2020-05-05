@@ -96,7 +96,12 @@ class ClarobiProductCountsController extends ClarobiAbstractController
                 }
             }
 
-            return new JsonResponse($this->encodeResponse->encodeResponse($data, self::ENTITY_NAME, self::ENTITY_TYPE));
+            return new JsonResponse($this->encodeResponse->encodeResponse(
+                $data,
+                self::ENTITY_NAME,
+                0,
+                self::ENTITY_TYPE
+            ));
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
