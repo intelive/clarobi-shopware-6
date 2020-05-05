@@ -7,12 +7,13 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Core\Content\Product\ProductEntity;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Content\Product\Aggregate\ProductMedia\ProductMediaEntity;
+use Shopware\Core\Content\Media\Aggregate\MediaThumbnail\MediaThumbnailEntity;
 use Shopware\Core\Content\Product\Aggregate\ProductMedia\ProductMediaCollection;
 
 /**
@@ -28,15 +29,7 @@ class ClarobiProductImageController extends AbstractController
      */
     protected $productRepository;
 
-    /**
-     * die(self::ERR . $exception->getMessage());
-     */
     const ERR = 'ERROR: ';
-    /**
-     * @todo headers to add in response
-     */
-    const HEADER_UNITYREPORTS = 'UnityReports: OK';
-    const HEADER_CLAROBI = 'ClaroBI: OK';
 
     /**
      * ClarobiProductImageController constructor.
@@ -49,101 +42,97 @@ class ClarobiProductImageController extends AbstractController
     }
 
     /**
-     * @Route("/clarobi/image/id/{id}/w/{w}", name="clarobi.product.image")
+     * @Route("/clarobi/product/get-image/id/{id}/w/{w}", name="clarobi.product.get.image")
      *
      * @param Request $request
      * @return Response
      */
     public function getImage(Request $request): Response
     {
-
-//        try {
-//            // Get product
-//            $product = wc_get_product($this->id);
-//            // If product with id exists
-//            if (!$product) {
-//                throw new Exception(self::ERR . 'Cannot load product');
-//            }
-//
-//            $image = wp_get_attachment_image_src(
-//                get_post_thumbnail_id($product->get_id()),
-//                array($this->width, $this->width)
-//            );
-//            if (!$image) {
-//                throw new Exception(self::ERR . 'No image found for this product!');
-//            }
-//            $image_path = $image[0];
-//            // Content
-//            $content = file_get_contents($image_path);
-//            if (!$content) {
-//                throw new Exception(self::ERR . 'Could not load image');
-//            }
-//
-//            $ext = strtolower(pathinfo($image_path, PATHINFO_EXTENSION));
-//            switch ($ext) {
-//                case 'gif':
-//                    $type = 'image/gif';
-//                    break;
-//                case 'jpg':
-//                case 'jpeg':
-//                    $type = 'image/jpeg';
-//                    break;
-//                case 'png':
-//                    $type = 'image/png';
-//                    break;
-//                default:
-//                    $type = 'unknown';
-//                    break;
-//            }
-//
-//            if ($type == 'unknown') {
-//                throw new Exception(self::ERR . 'Unknown type!');
-//            }
-//
-//            header('Content-Type:' . $type);
-//            header(self::HEADER_UNITYREPORTS);
-//            header(self::HEADER_CLAROBI);
-//            echo $content;
-//
-////            die();
-//        } catch (Exception $exception) {
-//            Clarobi_Logger::errorLog($exception->getMessage(), __METHOD__);
-//
-//            die($exception->getMessage());
-//        }
-
         try {
-            $id = $request->get('id');
-            $width = $request->get('w');
+            $id = (int)$request->get('id');
+            /**
+             * Not used since thumbnails can not be generated from here
+             * @todo delete
+             *      or use it to get thumbnail between width and minWidth
+             */
+            $width = (int)$request->get('w');
 
-            $context = Context::createDefaultContext();
+            // Product criteria
             $criteria = new Criteria();
-            $criteria->setLimit(50)->addFilter(new EqualsFilter('autoIncrement', $id))
-                ->addAssociation('media');
+            $criteria->addFilter(new EqualsFilter('autoIncrement', $id))
+                ->addAssociation('media')
+                ->setLimit(1);
 
-            /** @var ProductEntity $entities */
-            $product = $this->productRepository->search($criteria, $context)->first();
+            // Get product
+            /** @var ProductEntity $product */
+            $product = $this->productRepository->search($criteria, Context::createDefaultContext())->first();
+            if (!$product) {
+                throw new \Exception('Cannot load product.');
+            }
+
+            // Get product media collection
             /** @var ProductMediaCollection $image */
             $mediaCollection = $product->getMedia();
-            var_dump($mediaCollection->getElements());
-            die;
+            if (!$mediaCollection->getElements()) {
+                throw new \Exception('No image found for this product.');
+            }
 
-            /**
-             * @todo implement
-             */
+            $path = null;
+            $minWidth = 400;
 
+            // For every product image
+            /** @var ProductMediaEntity $mediaItem */
+            foreach ($mediaCollection as $mediaItem) {
+                // Get thumbnails
+                $thumbnails = $mediaItem->getMedia()->getThumbnails();
 
-            $ext = 'png';
-            $imageName = 'productImage';
+                // Search for thumbnail with desired width
+                /** @var MediaThumbnailEntity $thumbnail */
+                foreach ($thumbnails as $thumbnail) {
+                    $thumbnailWidth = $thumbnail->getWidth();
+                    if ($thumbnailWidth <= $minWidth) {
+                        $minWidth = $thumbnailWidth;
+
+                        $path = $thumbnail->getUrl();
+                    }
+                }
+            }
+            if (!$path) {
+                throw new \Exception('No image found for this product.');
+            }
+            $content = file_get_contents($path);
+            if (!$content) {
+                throw new \Exception('Could not load image.');
+            }
+            $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            switch ($extension) {
+                case 'gif':
+                    $type = 'image/gif';
+                    break;
+                case 'jpg':
+                case 'jpeg':
+                    $type = 'image/jpeg';
+                    break;
+                case 'png':
+                    $type = 'image/png';
+                    break;
+                default:
+                    $type = 'unknown';
+                    break;
+            }
+
+            if ($type == 'unknown') {
+                throw new \Exception('Unknown type.');
+            }
 
             $headers = array(
-//                'Content-Type' => 'image/' . $ext,
-//                'Content-Disposition' => 'inline; filename="' . $imageName . '"',
+                'Content-Type' => $type,
                 'UnityReports' => 'OK',
                 'ClaroBI' => 'OK'
             );
 
-            return new JsonResponse($product, 200, $headers);
+            return new Response($content, 200, $headers);
         } catch (\Exception $exception) {
             return new Response(self::ERR . $exception->getMessage());
         }
