@@ -85,8 +85,7 @@ class ClarobiStockController extends ClarobiAbstractController
             foreach ($entities->getElements() as $element) {
                 $stocks[] = [
                     'id' => $element->getAutoIncrement(),
-                    'id_product' => $element->getAutoIncrement(),
-                    'quantity' => $element->getStock()
+                    's' => $element->getStock()
                 ];
             }
             $date = date('Y-m-d H:i:s', time());
@@ -98,6 +97,7 @@ class ClarobiStockController extends ClarobiAbstractController
             return new JsonResponse($this->encodeResponse->encodeResponse(
                 $data,
                 self::ENTITY_NAME,
+                0,
                 self::ENTITY_TYPE
             ));
         } catch (\Exception $exception) {
