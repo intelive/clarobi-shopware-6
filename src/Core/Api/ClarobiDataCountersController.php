@@ -18,8 +18,12 @@ class ClarobiDataCountersController extends ClarobiAbstractController
     // auto_increment
     const SELECT = 'SELECT `auto_increment` as id FROM ';
     const ORDER_BY = ' ORDER BY `auto_increment` DESC LIMIT 1; ';
-    const SELECT2 = 'SELECT `clarobi_auto_increment` as id FROM ';
-    const ORDER_BY2 = ' ORDER BY `clarobi_auto_increment` DESC LIMIT 1; ';
+
+    const SELECT_CART = 'SELECT `clarobi_auto_increment` as id FROM ';
+    const ORDER_BY_CART = ' ORDER BY `clarobi_auto_increment` DESC LIMIT 1; ';
+
+    const SELECT_DOC = 'SELECT document.`clarobi_auto_increment` as id FROM ';
+    const ORDER_BY_DOC = ' ORDER BY document.`clarobi_auto_increment` DESC LIMIT 1; ';
     /**
      * @var Connection
      */
@@ -51,19 +55,34 @@ class ClarobiDataCountersController extends ClarobiAbstractController
      */
     public function dataCountersAction()
     {
-        $productQuery = $this->connection->executeQuery(self::SELECT . '`product`' . self::ORDER_BY)->fetch();
-        $customerQuery = $this->connection->executeQuery(self::SELECT . '`customer`' . self::ORDER_BY)->fetch();
-        $orderQuery = $this->connection->executeQuery(self::SELECT . '`order`' . self::ORDER_BY)->fetch();
-        $documentQuery = $this->connection->executeQuery(self::SELECT2 . '`document`' . self::ORDER_BY2)->fetch();
-        $abandonedCartQuery = $this->connection->executeQuery(self::SELECT2 . '`cart`' . self::ORDER_BY2)->fetch();
-
+        $productQueryResult = $this->connection->executeQuery(self::SELECT . '`product`' . self::ORDER_BY)
+            ->fetch();
+        $customerQueryResult = $this->connection->executeQuery(self::SELECT . '`customer`' . self::ORDER_BY)
+            ->fetch();
+        $orderQueryResult = $this->connection->executeQuery(self::SELECT . '`order`' . self::ORDER_BY)->fetch();
+        $abandonedCartQueryResult = $this->connection->executeQuery(
+            self::SELECT_CART . '`cart`' . self::ORDER_BY_CART
+        )->fetch();
+        $invoiceQueryResult = $this->connection->executeQuery(
+            self::SELECT_DOC . '`document`'
+            . " JOIN `document_type` ON document.document_type_id = document_type.id
+                    WHERE  document_type.`technical_name` = 'invoice'"
+            . self::ORDER_BY_DOC
+        )->fetch();
+        $creditNoteQueryResult = $this->connection->executeQuery(
+            self::SELECT_DOC . '`document`'
+            . " JOIN `document_type` ON document.document_type_id = document_type.id
+                    WHERE  document_type.`technical_name` = 'credit_note'"
+            . self::ORDER_BY_DOC
+        )->fetch();
         return new JsonResponse(
             [
-                'product' => ($productQuery ? $productQuery['id'] : 0),
-                'customer' => ($customerQuery ? $customerQuery['id'] : 0),
-                'order' => ($orderQuery ? $orderQuery['id'] : 0),
-                'abandonedcart' => ($abandonedCartQuery ? $abandonedCartQuery['id'] : 0),
-                'document' => ($documentQuery ? $documentQuery['id'] : 0)
+                'product' => ($productQueryResult ? $productQueryResult['id'] : 0),
+                'customer' => ($customerQueryResult ? $customerQueryResult['id'] : 0),
+                'order' => ($orderQueryResult ? $orderQueryResult['id'] : 0),
+                'abandonedcart' => ($abandonedCartQueryResult ? $abandonedCartQueryResult['id'] : 0),
+                'invoice' => ($invoiceQueryResult ? $invoiceQueryResult['id'] : 0),
+                'creditNote' => ($creditNoteQueryResult ? $creditNoteQueryResult['id'] : 0),
             ]
         );
     }
