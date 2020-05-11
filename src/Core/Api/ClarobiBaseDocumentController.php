@@ -109,18 +109,14 @@ class ClarobiBaseDocumentController extends ClarobiAbstractController
      * @param string $entityName
      * @return array
      */
-    public function ignoreEntityKeys($document, $entityName)
+    public function mapDocumentEntity($document, $entityName)
     {
-        $mappedKeys = [];
-        $mappedKeys['entity_name'] = $entityName;
+        $mappedKeys = $this->ignoreEntityKeys(
+            $document,
+            $entityName,
+            self::IGNORED_KEYS
+        );
         $mappedKeys['clarobiAutoIncrement'] = $this->incrementIds[$document['id']];
-
-        foreach ($document as $key => $value) {
-            if (in_array($key, self::IGNORED_KEYS)) {
-                continue;
-            }
-            $mappedKeys[$key] = $value;
-        }
 
         return $mappedKeys;
     }

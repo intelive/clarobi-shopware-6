@@ -64,7 +64,7 @@ class ClarobiCreditNoteController extends ClarobiBaseDocumentController
             if ($creditNotesCollection) {
                 /** @var DocumentEntity $element */
                 foreach ($creditNotesCollection as $element) {
-                    $mappedEntities[] = $this->ignoreEntityKeys(
+                    $mappedEntities[] = $this->mapDocumentEntity(
                         $element->jsonSerialize(),
                         self::ENTITY_NAME
                     );

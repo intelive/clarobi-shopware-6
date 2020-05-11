@@ -127,19 +127,10 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
 
         $mappedKeys = $this->ignoreEntityKeys($cart, self::ENTITY_NAME, self::IGNORED_KEYS);
 
-//        $mappedKeys['entity_name'] = self::ENTITY_NAME;
         $mappedKeys['clarobi_auto_increment'] = $result['clarobi_auto_increment'];
         $mappedKeys['customerId'] = $this->getCustomerAutoIncrement($result['customer_id']);
         $mappedKeys['createdAt'] = $result['created_at'];
         $mappedKeys['salesChannelId'] = Uuid::fromBytesToHex($result['sales_channel_id']);
-
-
-//        foreach ($cart as $key => $value) {
-//            if (in_array($key, self::IGNORED_KEYS)) {
-//                continue;
-//            }
-//            $mappedKeys[$key] = $value;
-//        }
 
         $mappedKeys['lineItems'] = [];
         /** @var LineItem $lineItem */

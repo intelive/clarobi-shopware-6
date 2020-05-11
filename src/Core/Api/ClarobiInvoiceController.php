@@ -64,7 +64,7 @@ class ClarobiInvoiceController extends ClarobiBaseDocumentController
             if ($invoicesCollection) {
                 /** @var DocumentEntity $element */
                 foreach ($invoicesCollection as $element) {
-                    $mappedEntities[] = $this->ignoreEntityKeys(
+                    $mappedEntities[] = $this->mapDocumentEntity(
                         $element->jsonSerialize(),
                         self::ENTITY_NAME
                     );
