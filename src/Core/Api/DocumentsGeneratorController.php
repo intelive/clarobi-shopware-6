@@ -5,6 +5,7 @@ namespace Clarobi\Core\Api;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\Checkout\Order\OrderEntity;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Core\Checkout\Order\OrderCollection;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -72,15 +73,23 @@ class DocumentsGeneratorController
     /**
      * @RouteScope(scopes={"storefront"})
      * @Route("/clarobi/generate/document", name="clarobi.generate.document", methods={"GET"})
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
-    public function generateDocuments()
+    public function generateDocuments(Request $request)
     {
         try {
+            $autoIncrement = (int)$request->get('id');
+            $limit = (int)$request->get('limit');
+
             $docTypesData = $this->getDocsTypeData();
 
+            $orderIds = [];
+
             $criteria = new Criteria();
-            $criteria->setLimit(1)
-                ->addFilter(new RangeFilter('autoIncrement', ['gte' => 0]))
+            $criteria->setLimit($limit)
+                ->addFilter(new RangeFilter('autoIncrement', ['gte' => $autoIncrement]))
                 ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
                 ->addAssociation('documents');
 
@@ -109,9 +118,10 @@ class DocumentsGeneratorController
                     $generatedInvoiceNumber,
                     $generatedCreditNoteNumber
                 );
+                $orderIds[] = [$order->getAutoIncrement(), $order->getOrderNumber()];
             }
 
-            return new JsonResponse(['status' => 'success', 'message' => 'process completed']);
+            return new JsonResponse(['status' => 'success', 'message' => 'process completed', 'data' => $orderIds]);
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
@@ -175,7 +185,7 @@ class DocumentsGeneratorController
             'document_' . $type,
             Context::createDefaultContext(),
             self::SALES_CHANNEL,
-            true
+            false
         );
     }
 
