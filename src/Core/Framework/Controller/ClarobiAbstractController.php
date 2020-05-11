@@ -49,4 +49,24 @@ abstract class ClarobiAbstractController extends AbstractController
             );
         }
     }
+
+    /**
+     * @param $entityData
+     * @param string $entityName
+     * @param array $keysToIgnore
+     * @return mixed
+     */
+
+    public function ignoreEntityKeys($entityData, $entityName, $keysToIgnore)
+    {
+        $mappedKeys['entity_name'] = $entityName;
+        foreach ($entityData as $key => $value) {
+            if (in_array($key, $keysToIgnore)) {
+                continue;
+            }
+            $mappedKeys[$key] = $value;
+        }
+
+        return $mappedKeys;
+    }
 }

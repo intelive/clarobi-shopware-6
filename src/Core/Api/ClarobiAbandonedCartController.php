@@ -30,31 +30,24 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
      * @var Connection
      */
     protected $connection;
-
     /**
      * @var EncodeResponseService
      */
     protected $encodeResponse;
-
     /**
      * @var ClarobiConfigService
      */
     protected $configService;
-
+    /**
+     * @var EntityRepositoryInterface
+     */
     protected $productRepository;
 
     const ENTITY_NAME = 'abandonedcart';
 
     const IGNORED_KEYS = [
-        'name',
-        'token',
-//        'price',
-//        'lineItems',
-        'errors',
-        'deliveries',
-        'transactions',
-        'modified',
-        'extensions',
+//        'price', 'lineItems',
+        'name', 'token', 'errors', 'deliveries', 'transactions', 'modified', 'extensions',
     ];
 
     /**
@@ -96,7 +89,7 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
             $stm = $this->connection->executeQuery("
                     SELECT cart.`*`FROM `cart`
                     WHERE cart.`clarobi_auto_increment` >= {$from_id}
-                        AND DATE(cart.`created_at`) = DATE_SUB(DATE(NOW()), INTERVAL 1 DAY)
+                        AND DATE(cart.`created_at`) = DATE_SUB(DATE(NOW()), INTERVAL 2 DAY)
                     ORDER BY cart.`clarobi_auto_increment` ASC
                     LIMIT 50;
             ");
@@ -132,19 +125,21 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
         $cart = unserialize($result['cart']);
         $cart = $cart->jsonSerialize();
 
-        $mappedKeys['entity_name'] = self::ENTITY_NAME;
+        $mappedKeys = $this->ignoreEntityKeys($cart, self::ENTITY_NAME, self::IGNORED_KEYS);
+
+//        $mappedKeys['entity_name'] = self::ENTITY_NAME;
         $mappedKeys['clarobi_auto_increment'] = $result['clarobi_auto_increment'];
         $mappedKeys['customerId'] = $this->getCustomerAutoIncrement($result['customer_id']);
         $mappedKeys['createdAt'] = $result['created_at'];
         $mappedKeys['salesChannelId'] = Uuid::fromBytesToHex($result['sales_channel_id']);
 
 
-        foreach ($cart as $key => $value) {
-            if (in_array($key, self::IGNORED_KEYS)) {
-                continue;
-            }
-            $mappedKeys[$key] = $value;
-        }
+//        foreach ($cart as $key => $value) {
+//            if (in_array($key, self::IGNORED_KEYS)) {
+//                continue;
+//            }
+//            $mappedKeys[$key] = $value;
+//        }
 
         $mappedKeys['lineItems'] = [];
         /** @var LineItem $lineItem */

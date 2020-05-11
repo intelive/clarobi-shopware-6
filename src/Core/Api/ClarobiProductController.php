@@ -138,13 +138,15 @@ class ClarobiProductController extends ClarobiAbstractController
      */
     private function mapProductEntity($product)
     {
-        $mappedKeys['entity_name'] = self::ENTITY_NAME;
-        foreach ($product as $key => $value) {
-            if (in_array($key, self::IGNORED_KEYS)) {
-                continue;
-            }
-            $mappedKeys[$key] = $value;
-        }
+//        $mappedKeys['entity_name'] = self::ENTITY_NAME;
+//        foreach ($product as $key => $value) {
+//            if (in_array($key, self::IGNORED_KEYS)) {
+//                continue;
+//            }
+//            $mappedKeys[$key] = $value;
+//        }
+        $mappedKeys = $this->ignoreEntityKeys($product, self::ENTITY_NAME, self::IGNORED_KEYS);
+
         $mappedKeys['type'] = ($product['childCount'] ? 'configurable' : 'simple');
 
         if ($product['parentId']) {

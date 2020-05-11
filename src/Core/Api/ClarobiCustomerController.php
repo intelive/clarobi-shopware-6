@@ -130,13 +130,18 @@ class ClarobiCustomerController extends ClarobiAbstractController
      */
     private function mapCustomerEntity($customer)
     {
-        $mappedKeys['entity_name'] = self::ENTITY_NAME;
-        foreach ($customer as $key => $value) {
-            if (in_array($key, self::IGNORED_KEYS)) {
-                continue;
-            }
-            $mappedKeys[$key] = $value;
-        }
+        $mappedKeys = $this->ignoreEntityKeys(
+            $customer,
+            self::ENTITY_NAME,
+            self::IGNORED_KEYS
+        );
+//        $mappedKeys['entity_name'] = self::ENTITY_NAME;
+//        foreach ($customer as $key => $value) {
+//            if (in_array($key, self::IGNORED_KEYS)) {
+//                continue;
+//            }
+//            $mappedKeys[$key] = $value;
+//        }
         /** @var SalutationEntity $salutation */
         $salutation = $customer['salutation'];
 

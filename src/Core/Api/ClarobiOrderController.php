@@ -137,13 +137,14 @@ class ClarobiOrderController extends ClarobiAbstractController
      */
     private function mapOrderEntity($order)
     {
-        $mappedKeys['entity_name'] = self::ENTITY_NAME;
-        foreach ($order as $key => $value) {
-            if (in_array($key, self::IGNORED_KEYS)) {
-                continue;
-            }
-            $mappedKeys[$key] = $value;
-        }
+//        $mappedKeys['entity_name'] = self::ENTITY_NAME;
+//        foreach ($order as $key => $value) {
+//            if (in_array($key, self::IGNORED_KEYS)) {
+//                continue;
+//            }
+//            $mappedKeys[$key] = $value;
+//        }
+        $mappedKeys = $this->ignoreEntityKeys($order, self::ENTITY_NAME, self::IGNORED_KEYS);
 
         // Get currency
         $mappedKeys['currency_isoCode'] = $order['currency']->getIsoCode();
