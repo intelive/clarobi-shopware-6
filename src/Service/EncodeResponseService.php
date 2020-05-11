@@ -36,10 +36,11 @@ class EncodeResponseService
     /**
      * @param array $data
      * @param string $entityName
+     * @param $lastId
      * @param null $type
      * @return array
      */
-    public function encodeResponse($data, $entityName, $lastId = 0, $type = null)
+    public function encodeResponse($data, $entityName, $lastId, $type = null)
     {
         $responseIsEncoded = $responseIsCompressed = false;
 
@@ -64,7 +65,6 @@ class EncodeResponseService
             'isEncoded' => $responseIsEncoded,
             'isCompressed' => $responseIsCompressed,
             'license_key' => $this->apiLicense,
-//            'rawData' => $originalData,
             'data' => $data,
             'entity' => $entityName,
             'type' => ($type ? $type : 'SYNC')

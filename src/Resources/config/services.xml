@@ -100,15 +100,6 @@
             <argument type="service" id="clarobi.service.encode_response"/>
         </service>
 
-        <!--Controller for demo invoices and credit_notes-->
-        <service id="Clarobi\Core\Api\DocumentsGeneratorController" public="true">
-            <argument type="service" id="document.repository"/>
-            <argument type="service" id="document_type.repository"/>
-            <argument type="service" id="order.repository"/>
-            <argument type="service"
-                      id="Shopware\Core\System\NumberRange\ValueGenerator\NumberRangeValueGeneratorInterface"/>
-        </service>
-
         <!--Helpers-->
         <service id="Clarobi\Utils\ProductCountsDataUpdate">
             <argument type="service" id="Doctrine\DBAL\Connection"/>
@@ -120,13 +111,6 @@
 
         <service id="clarobi.product_mapper_helper" class="Clarobi\Utils\ProductMapperHelper">
             <argument type="service" id="Doctrine\DBAL\Connection"/>
-        </service>
-
-        <!--Commands-->
-        <service id="Clarobi\Core\Framework\Command\ProductCountsCommand">
-            <argument type="service" id="product.repository"/>
-            <argument type="service" id="Doctrine\DBAL\Connection"/>
-            <tag name="console.command"/>
         </service>
 
     </services>
