@@ -8,13 +8,16 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Core\Content\Product\ProductEntity;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
+use Shopware\Core\Content\Media\Thumbnail\ThumbnailService;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Shopware\Core\Content\Media\Aggregate\MediaFolder\MediaFolderEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Shopware\Core\Content\Product\Aggregate\ProductMedia\ProductMediaEntity;
 use Shopware\Core\Content\Media\Aggregate\MediaThumbnail\MediaThumbnailEntity;
 use Shopware\Core\Content\Product\Aggregate\ProductMedia\ProductMediaCollection;
+use Shopware\Core\Content\Media\Aggregate\MediaDefaultFolder\MediaDefaultFolderEntity;
+use Shopware\Core\Content\Media\Aggregate\MediaThumbnailSize\MediaThumbnailSizeEntity;
 
 /**
  * Class ClarobiProductImageController
@@ -24,25 +27,40 @@ use Shopware\Core\Content\Product\Aggregate\ProductMedia\ProductMediaCollection;
  */
 class ClarobiProductImageController extends AbstractController
 {
-    /**
-     * @var EntityRepositoryInterface
-     */
+    /** @var ThumbnailService */
+    protected $thumbnailService;
+    /** @var EntityRepositoryInterface */
     protected $productRepository;
+    /** @var EntityRepositoryInterface */
+    protected $mediaThumbnailSizeRepository;
+    /** @var EntityRepositoryInterface */
+    protected $mediaDefaultFolderRepository;
+    /** @var EntityRepositoryInterface */
+    protected $mediaConfigThumbnailSizeRepo;
 
     const ERR = 'ERROR: ';
+    const WIDTH = 50;
 
     /**
      * ClarobiProductImageController constructor.
-     *
-     * @param EntityRepositoryInterface $productRepository
      */
-    public function __construct(EntityRepositoryInterface $productRepository)
+    public function __construct(
+        ThumbnailService $thumbnailService,
+        EntityRepositoryInterface $productRepository,
+        EntityRepositoryInterface $mediaThumbnailSizeRepository,
+        EntityRepositoryInterface $mediaDefaultFolderRepository,
+        EntityRepositoryInterface $mediaConfigThumbnailSizeRepo
+    )
     {
+        $this->thumbnailService = $thumbnailService;
         $this->productRepository = $productRepository;
+        $this->mediaThumbnailSizeRepository = $mediaThumbnailSizeRepository;
+        $this->mediaDefaultFolderRepository = $mediaDefaultFolderRepository;
+        $this->mediaConfigThumbnailSizeRepo = $mediaConfigThumbnailSizeRepo;
     }
 
     /**
-     * @Route("/clarobi/product/get-image/id/{id}/w/{w}", name="clarobi.product.get.image")
+     * @Route("/clarobi/product/get-image/id/{id}", name="clarobi.product.get.image")
      *
      * @param Request $request
      * @return Response
@@ -51,12 +69,9 @@ class ClarobiProductImageController extends AbstractController
     {
         try {
             $id = (int)$request->get('id');
-            /**
-             * Not used since thumbnails can not be generated from here
-             * @todo delete
-             *      or use it to get thumbnail between width and minWidth
-             */
-            $width = (int)$request->get('w');
+
+            // Insert thumbnail size if not found
+            $this->insertThumbnailSize(self::WIDTH);
 
             // Product criteria
             $criteria = new Criteria();
@@ -79,32 +94,40 @@ class ClarobiProductImageController extends AbstractController
             }
 
             $path = null;
-            $minWidth = 400;
+            $minWidth = 1920;
 
-            // For every product image
-            /** @var ProductMediaEntity $mediaItem */
-            foreach ($mediaCollection as $mediaItem) {
-                // Get thumbnails
-                $thumbnails = $mediaItem->getMedia()->getThumbnails();
+            // Get media
+            $mediaElements = $product->getMedia()->getMedia()->getElements();
+            foreach ($mediaElements as $media) {
+                // Update thumbnails
+//                $resultUpdate = $this->thumbnailService->updateThumbnails($media, Context::createDefaultContext());
+                $resultGenerate = $this->thumbnailService->generateThumbnails($media, Context::createDefaultContext());
 
-                // Search for thumbnail with desired width
+//                ($resultUpdate > 0 ? var_dump('updated') : '');
+//                ($resultGenerate > 0 ? var_dump('generated') : '');
+
                 /** @var MediaThumbnailEntity $thumbnail */
-                foreach ($thumbnails as $thumbnail) {
+                foreach ($media->getThumbnails() as $thumbnail) {
+//                    var_dump($thumbnail->getUrl());
+
                     $thumbnailWidth = $thumbnail->getWidth();
                     if ($thumbnailWidth <= $minWidth) {
                         $minWidth = $thumbnailWidth;
-
                         $path = $thumbnail->getUrl();
                     }
                 }
             }
+
+            // Check if any path was found
             if (!$path) {
                 throw new \Exception('No image found for this product.');
             }
+            // Get file content
             $content = file_get_contents($path);
             if (!$content) {
                 throw new \Exception('Could not load image.');
             }
+            // Get file extension
             $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
             switch ($extension) {
                 case 'gif':
@@ -129,12 +152,69 @@ class ClarobiProductImageController extends AbstractController
             $headers = array(
                 'Content-Type' => $type,
                 'UnityReports' => 'OK',
-                'ClaroBI' => 'OK'
+                'ClaroBI' => 'OK',
+                'MinWidthFound' => $minWidth,
+                'DefaultImageUrl' => $path
             );
 
             return new Response($content, 200, $headers);
         } catch (\Exception $exception) {
             return new Response(self::ERR . $exception->getMessage());
+        }
+    }
+
+    /**
+     * @param $thumbnailSize
+     * @return bool
+     */
+    private function insertThumbnailSize($thumbnailSize)
+    {
+        // add size in media_thumbnail_size
+        $mediaCriteria = new Criteria();
+        $mediaCriteria->addFilter(new EqualsFilter('width', $thumbnailSize));
+        $mediaSizeColl = $this->mediaThumbnailSizeRepository->search(
+            $mediaCriteria,
+            Context::createDefaultContext()
+        )->getEntities();
+        if (!$mediaSizeColl->count()) {
+            $this->mediaThumbnailSizeRepository->upsert(
+                [
+                    ['width' => $thumbnailSize, 'height' => $thumbnailSize],
+                ],
+                Context::createDefaultContext());
+        }
+
+        /** @var MediaThumbnailSizeEntity $mediaThumbnailSizeColl */
+        $newMediaThumbnailSize = $this->mediaThumbnailSizeRepository->search(
+            $mediaCriteria,
+            Context::createDefaultContext()
+        )->first();
+
+        if ($newMediaThumbnailSize) {
+            // Get default folder
+            $criteria = new Criteria();
+            $criteria->addFilter(new EqualsFilter('entity', 'product'))
+                ->addAssociation('folder.configuration');
+
+            /** @var MediaDefaultFolderEntity $mediaDefaultFolderEntity */
+            $mediaDefaultFolder = $this->mediaDefaultFolderRepository->search(
+                $criteria, Context::createDefaultContext()
+            )->first();
+
+            /** @var MediaFolderEntity $mediaFolder */
+            $mediaFolder = $mediaDefaultFolder->getFolder();
+            if ($mediaFolder) {
+                $mediaFolderConfigId = $mediaFolder->getConfigurationId();
+                $this->mediaConfigThumbnailSizeRepo->upsert(
+                    [
+                        [
+                            'mediaFolderConfigurationId' => $mediaFolderConfigId,
+                            'mediaThumbnailSizeId' => $newMediaThumbnailSize->getId()
+                        ]
+                    ],
+                    Context::createDefaultContext()
+                );
+            }
         }
     }
 }
