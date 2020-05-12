@@ -90,7 +90,7 @@ class ClarobiProductCountsController extends ClarobiAbstractController
                     ];
                     $data['counters'][] = [
                         'product_id' => $result['product_auto_increment'],
-                        'event_name' => 'catalog_cart_add_product',
+                        'event_name' => 'checkout_cart_add_product',
                         'viewed' => $result['adds_to_cart']
                     ];
                 }
