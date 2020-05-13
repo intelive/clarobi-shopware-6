@@ -74,6 +74,8 @@
         <service id="Clarobi\Core\Api\ClarobiDataCountersController" public="true">
             <argument type="service" id="Doctrine\DBAL\Connection"/>
             <argument type="service" id="clarobi.service.config"/>
+            <argument type="service" id="product.repository"/>
+            <argument type="service" id="order.repository"/>
         </service>
 
         <service id="Clarobi\Core\Api\ClarobiProductImageController" public="true">

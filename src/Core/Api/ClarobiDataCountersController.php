@@ -4,6 +4,10 @@ namespace Clarobi\Core\Api;
 
 use Doctrine\DBAL\Connection;
 use Clarobi\Service\ClarobiConfigService;
+use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
@@ -33,6 +37,8 @@ class ClarobiDataCountersController extends ClarobiAbstractController
      * @var ClarobiConfigService
      */
     protected $config;
+    protected $productRepository;
+    protected $orderRepository;
 
     /**
      * ClarobiDataCountersController constructor.
@@ -40,10 +46,14 @@ class ClarobiDataCountersController extends ClarobiAbstractController
      * @param Connection $connection
      * @param ClarobiConfigService $config
      */
-    public function __construct(Connection $connection, ClarobiConfigService $config)
+    public function __construct(Connection $connection, ClarobiConfigService $config,
+                                EntityRepositoryInterface $productRepo, EntityRepositoryInterface $orderRepo
+    )
     {
         $this->config = $config;
         $this->connection = $connection;
+        $this->productRepository = $productRepo;
+        $this->orderRepository = $orderRepo;
     }
 
     /**
@@ -55,11 +65,8 @@ class ClarobiDataCountersController extends ClarobiAbstractController
      */
     public function dataCountersAction()
     {
-        $productQueryResult = $this->connection->executeQuery(self::SELECT . '`product`' . self::ORDER_BY)
-            ->fetch();
         $customerQueryResult = $this->connection->executeQuery(self::SELECT . '`customer`' . self::ORDER_BY)
             ->fetch();
-        $orderQueryResult = $this->connection->executeQuery(self::SELECT . '`order`' . self::ORDER_BY)->fetch();
         $abandonedCartQueryResult = $this->connection->executeQuery(
             self::SELECT_CART . '`cart`' . self::ORDER_BY_CART
         )->fetch();
@@ -75,14 +82,18 @@ class ClarobiDataCountersController extends ClarobiAbstractController
                     WHERE  document_type.`technical_name` = 'credit_note'"
             . self::ORDER_BY_DOC
         )->fetch();
+
+        $lastProduct = $this->productRepository->search(new Criteria(), Context::createDefaultContext())->last();
+        $lastOrder = $this->orderRepository->search(new Criteria(), Context::createDefaultContext())->last();
+
         return new JsonResponse(
             [
-                'product' => ($productQueryResult ? $productQueryResult['id'] : 0),
-                'customer' => ($customerQueryResult ? $customerQueryResult['id'] : 0),
-                'order' => ($orderQueryResult ? $orderQueryResult['id'] : 0),
-                'abandonedcart' => ($abandonedCartQueryResult ? $abandonedCartQueryResult['id'] : 0),
-                'invoice' => ($invoiceQueryResult ? $invoiceQueryResult['id'] : 0),
-                'creditNote' => ($creditNoteQueryResult ? $creditNoteQueryResult['id'] : 0),
+                'product' => ($lastProduct ? (int)$lastProduct->getAutoIncrement() : 0),
+                'customer' => ($customerQueryResult ? (int)$customerQueryResult['id'] : 0),
+                'order' => ($lastOrder ? (int)$lastOrder->getAutoIncrement() : 0),
+                'abandonedcart' => ($abandonedCartQueryResult ? (int)$abandonedCartQueryResult['id'] : 0),
+                'invoice' => ($invoiceQueryResult ? (int)$invoiceQueryResult['id'] : 0),
+                'creditNote' => ($creditNoteQueryResult ? (int)$creditNoteQueryResult['id'] : 0),
             ]
         );
     }
