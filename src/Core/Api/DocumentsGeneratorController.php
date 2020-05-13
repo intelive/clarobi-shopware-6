@@ -82,6 +82,7 @@ class DocumentsGeneratorController
         try {
             $autoIncrement = (int)$request->get('id');
             $limit = (int)$request->get('limit');
+            $bothTypes = (int)$request->get('both');
 
             $docTypesData = $this->getDocsTypeData();
 
@@ -98,6 +99,8 @@ class DocumentsGeneratorController
 
             /** @var OrderEntity $order */
             foreach ($orders as $order) {
+                $orderIds[] = [$order->getAutoIncrement(), $order->getOrderNumber()];
+
                 // Generate invoice and credit_note numbers
                 $generatedInvoiceNumber = $this->generateNumber(self::TYPE_INVOICE);
                 $generatedCreditNoteNumber = $this->generateNumber(self::TYPE_CREDIT_NOTE);
@@ -110,15 +113,17 @@ class DocumentsGeneratorController
                     $generatedInvoiceNumber
                 );
 
-                // Create credit note
-                $this->generateConfigsAndCreate(
-                    $order,
-                    $docTypesData[self::TYPE_CREDIT_NOTE],
-                    self::TYPE_CREDIT_NOTE,
-                    $generatedInvoiceNumber,
-                    $generatedCreditNoteNumber
-                );
-                $orderIds[] = [$order->getAutoIncrement(), $order->getOrderNumber()];
+                // Check if credit note should be created
+                if ($bothTypes) {
+                    // Create credit note
+                    $this->generateConfigsAndCreate(
+                        $order,
+                        $docTypesData[self::TYPE_CREDIT_NOTE],
+                        self::TYPE_CREDIT_NOTE,
+                        $generatedInvoiceNumber,
+                        $generatedCreditNoteNumber
+                    );
+                }
             }
 
             return new JsonResponse(['status' => 'success', 'message' => 'process completed', 'data' => $orderIds]);
