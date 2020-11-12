@@ -1,10 +1,10 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Core\Api;
+namespace ClarobiClarobi\Core\Api;
 
 use Doctrine\DBAL\Connection;
-use Clarobi\Service\ClarobiConfigService;
-use Clarobi\Service\EncodeResponseService;
+use ClarobiClarobi\Service\ClarobiConfigService;
+use ClarobiClarobi\Service\EncodeResponseService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -14,12 +14,13 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 
 /**
  * Class ClarobiCreditNoteController
- * @package Clarobi\Core\Api
+ *
+ * @package ClarobiClarobi\Core\Api
  */
 class ClarobiCreditNoteController extends ClarobiBaseDocumentController
 {
-    const ENTITY_NAME = 'sales_creditnote';
-    const DOC_TYPE = 'credit_note';
+    protected static $entityName = 'sales_creditnote';
+    protected static $documentType = 'credit_note';
 
     /**
      * ClarobiDocumentsController constructor.
@@ -29,11 +30,8 @@ class ClarobiCreditNoteController extends ClarobiBaseDocumentController
      * @param ClarobiConfigService $configService
      * @param EncodeResponseService $responseService
      */
-    public function __construct(
-        Connection $connection,
-        EntityRepositoryInterface $documentRepository,
-        ClarobiConfigService $configService,
-        EncodeResponseService $responseService
+    public function __construct(Connection $connection, EntityRepositoryInterface $documentRepository,
+                                ClarobiConfigService $configService, EncodeResponseService $responseService
     )
     {
         parent::__construct($connection, $documentRepository, $configService, $responseService);
@@ -41,45 +39,34 @@ class ClarobiCreditNoteController extends ClarobiBaseDocumentController
 
     /**
      * @RouteScope(scopes={"storefront"})
-     * @Route("/clarobi/creditNote", name="clarobi.credit.note.list", methods={"GET"})
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * @Route(path="/clarobi/creditNote", name="clarobi.credit.note.list", methods={"GET"})
      */
     public function listAction(Request $request)
     {
         try {
-            // Verify request
             $this->verifyParam($request);
             $this->verifyToken($request, $this->config->getConfigs());
-            // Get param
             $from_id = $request->get('from_id');
 
-            $this->getDocumentIdsByType(self::DOC_TYPE, $from_id);
+            $this->getDocumentIdsByType(self::$documentType, $from_id);
             $creditNotesCollection = $this->getDocumentCollectionFromIds($this->hexIds);
 
             $mappedEntities = [];
             $lastId = 0;
-
             if ($creditNotesCollection) {
                 /** @var DocumentEntity $element */
                 foreach ($creditNotesCollection as $element) {
                     $mappedEntities[] = $this->mapDocumentEntity(
                         $element->jsonSerialize(),
-                        self::ENTITY_NAME
+                        self::$entityName
                     );
                 }
                 $lastId = $this->incrementIds[$element->getId()];
             }
 
-            return new JsonResponse($this->encodeResponse->encodeResponse(
-                $mappedEntities,
-                self::ENTITY_NAME,
-                $lastId
-            ));
+            return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::$entityName, $lastId));
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
     }
-
 }

@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Core\Api;
+namespace ClarobiClarobi\Core\Api;
 
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\Uuid\Uuid;
@@ -21,38 +21,27 @@ use Shopware\Core\System\NumberRange\ValueGenerator\NumberRangeValueGeneratorInt
 
 /**
  * Class DocumentsGeneratorController
- * @package Clarobi\Core\Api
+ *
+ * @package ClarobiClarobi\Core\Api
  */
 class DocumentsGeneratorController
 {
-    /**
-     * @var EntityRepositoryInterface
-     */
+    /** @var EntityRepositoryInterface $documentRepository */
     private $documentRepository;
-    /**
-     * @var EntityRepositoryInterface
-     */
+    /** @var EntityRepositoryInterface $documentTypeRepository */
     private $documentTypeRepository;
-    /**
-     * @var EntityRepositoryInterface
-     */
+    /** @var EntityRepositoryInterface $orderRepository */
     private $orderRepository;
-    /**
-     * @var NumberRangeValueGeneratorInterface
-     */
+    /** @var NumberRangeValueGeneratorInterface $valueGenerator */
     protected $valueGenerator;
 
-    const TYPE_INVOICE = 'invoice';
-    const TYPE_CREDIT_NOTE = 'credit_note';
-    const SALES_CHANNEL = '98432def39fc4624b33213a56b8c944d';
-
-    /**
-     * @todo for more sample data
-     *      run: bin/console framework:demodata
-     */
+    protected static $docTypeInvoice = 'invoice';
+    protected static $docTypeCreditNote = 'credit_note';
+    protected static $salesChannelId = '98432def39fc4624b33213a56b8c944d';
 
     /**
      * DocumentsGeneratorController constructor.
+     *
      * @param EntityRepositoryInterface $documentRepository
      * @param EntityRepositoryInterface $documentTypeRepository
      * @param EntityRepositoryInterface $orderRepository
@@ -74,8 +63,7 @@ class DocumentsGeneratorController
      * @RouteScope(scopes={"storefront"})
      * @Route("/clarobi/generate/document", name="clarobi.generate.document", methods={"GET"})
      *
-     * @param Request $request
-     * @return JsonResponse
+     * Run: bin/console framework:demodata
      */
     public function generateDocuments(Request $request)
     {
@@ -85,7 +73,6 @@ class DocumentsGeneratorController
             $bothTypes = (int)$request->get('both');
 
             $docTypesData = $this->getDocsTypeData();
-
             $orderIds = [];
 
             $criteria = new Criteria();
@@ -96,20 +83,18 @@ class DocumentsGeneratorController
 
             /** @var OrderCollection $order */
             $orders = $this->orderRepository->search($criteria, Context::createDefaultContext())->getElements();
-
             /** @var OrderEntity $order */
             foreach ($orders as $order) {
                 $orderIds[] = [$order->getAutoIncrement(), $order->getOrderNumber()];
-
                 // Generate invoice and credit_note numbers
-                $generatedInvoiceNumber = $this->generateNumber(self::TYPE_INVOICE);
-                $generatedCreditNoteNumber = $this->generateNumber(self::TYPE_CREDIT_NOTE);
+                $generatedInvoiceNumber = $this->generateNumber(self::$docTypeInvoice);
+                $generatedCreditNoteNumber = $this->generateNumber(self::$docTypeCreditNote);
 
                 // First create invoice
                 $this->generateConfigsAndCreate(
                     $order,
-                    $docTypesData[self::TYPE_INVOICE],
-                    self::TYPE_INVOICE,
+                    $docTypesData[self::$docTypeInvoice],
+                    self::$docTypeInvoice,
                     $generatedInvoiceNumber
                 );
 
@@ -118,8 +103,8 @@ class DocumentsGeneratorController
                     // Create credit note
                     $this->generateConfigsAndCreate(
                         $order,
-                        $docTypesData[self::TYPE_CREDIT_NOTE],
-                        self::TYPE_CREDIT_NOTE,
+                        $docTypesData[self::$docTypeCreditNote],
+                        self::$docTypeCreditNote,
                         $generatedInvoiceNumber,
                         $generatedCreditNoteNumber
                     );
@@ -145,8 +130,8 @@ class DocumentsGeneratorController
             ->addFilter(new MultiFilter(
                 MultiFilter::CONNECTION_OR,
                 [
-                    new EqualsFilter('technicalName', self::TYPE_INVOICE),
-                    new EqualsFilter('technicalName', self::TYPE_CREDIT_NOTE),
+                    new EqualsFilter('technicalName', self::$docTypeInvoice),
+                    new EqualsFilter('technicalName', self::$docTypeCreditNote),
                 ]
             ));
         $documentTypes = $this->documentTypeRepository->search(
@@ -189,7 +174,7 @@ class DocumentsGeneratorController
         return $this->valueGenerator->getValue(
             'document_' . $type,
             Context::createDefaultContext(),
-            self::SALES_CHANNEL,
+            self::$salesChannelId,
             false
         );
     }
@@ -204,10 +189,10 @@ class DocumentsGeneratorController
     private function generateConfigsAndCreate($order, $docTypeData, $type, $invoiceNumber, $creditNoteNumber = null)
     {
         switch ($type) {
-            case self::TYPE_INVOICE:
+            case self::$docTypeInvoice:
                 $docTypeData['config']['custom'] = ['invoiceNumber' => $invoiceNumber];
                 break;
-            case self::TYPE_CREDIT_NOTE:
+            case self::$docTypeCreditNote:
                 $docTypeData['config']['custom'] = [
                     'invoiceNumber' => $invoiceNumber,
                     'creditNoteNumber' => $creditNoteNumber
@@ -219,7 +204,7 @@ class DocumentsGeneratorController
         $newOrderVersion = $this->orderRepository->createVersion($order->getId(), Context::createDefaultContext());
 
         // Create document
-        $result = $this->documentRepository->create([
+        $this->documentRepository->create([
             [
                 'documentTypeId' => $docTypeData['docTypeId'],
                 'fileType' => 'pdf',

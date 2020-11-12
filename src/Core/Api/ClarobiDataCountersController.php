@@ -1,44 +1,38 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Core\Api;
+namespace ClarobiClarobi\Core\Api;
 
 use Doctrine\DBAL\Connection;
-use Clarobi\Service\ClarobiConfigService;
+use ClarobiClarobi\Service\ClarobiConfigService;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
-use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
+use ClarobiClarobi\Core\Framework\Controller\ClarobiAbstractController;
 
 /**
  * Class ClarobiDataCountersController
- * @package Clarobi\Core\Api
+ * @package ClarobiClarobi\Core\Api
  */
 class ClarobiDataCountersController extends ClarobiAbstractController
 {
-    // auto_increment
-    const SELECT = 'SELECT `auto_increment` as id FROM ';
-    const ORDER_BY = ' ORDER BY `auto_increment` DESC LIMIT 1; ';
-
-    const SELECT_CART = 'SELECT `clarobi_auto_increment` as id FROM ';
-    const ORDER_BY_CART = ' ORDER BY `clarobi_auto_increment` DESC LIMIT 1; ';
-
-    const SELECT_DOC = 'SELECT document.`clarobi_auto_increment` as id FROM ';
-    const ORDER_BY_DOC = ' ORDER BY document.`clarobi_auto_increment` DESC LIMIT 1; ';
-    /**
-     * @var Connection
-     */
+    /** @var Connection $connection */
     protected $connection;
-
-    /**
-     * @var ClarobiConfigService
-     */
+    /** @var ClarobiConfigService $config */
     protected $config;
+    /** @var EntityRepositoryInterface $productRepository */
     protected $productRepository;
+    /** @var EntityRepositoryInterface $orderRepository */
     protected $orderRepository;
+
+    protected static $selectAutoInc = 'SELECT `auto_increment` as id FROM ';
+    protected static $selectClaroAutoInc = 'SELECT `clarobi_auto_increment` as id FROM ';
+    protected static $orderByAutoInc = ' ORDER BY `auto_increment` DESC LIMIT 1;';
+    protected static $orderByClaroAutoInc = ' ORDER BY `clarobi_auto_increment` DESC LIMIT 1;';
+    protected static $docTypeInvoice = 'invoice';
+    protected static $docTypeCreditNote = 'credit_note';
 
     /**
      * ClarobiDataCountersController constructor.
@@ -58,43 +52,43 @@ class ClarobiDataCountersController extends ClarobiAbstractController
 
     /**
      * @RouteScope(scopes={"storefront"})
-     * @Route("/clarobi/dataCounters", name="clarobi.action.data.counters", methods={"GET"})
-     *
-     * @return JsonResponse
-     * @throws \Doctrine\DBAL\DBALException
+     * @Route(path="/clarobi/dataCounters", name="clarobi.action.data.counters", methods={"GET"})
      */
     public function dataCountersAction()
     {
-        $customerQueryResult = $this->connection->executeQuery(self::SELECT . '`customer`' . self::ORDER_BY)
-            ->fetch();
-        $abandonedCartQueryResult = $this->connection->executeQuery(
-            self::SELECT_CART . '`cart`' . self::ORDER_BY_CART
-        )->fetch();
-        $invoiceQueryResult = $this->connection->executeQuery(
-            self::SELECT_DOC . '`document`'
-            . " JOIN `document_type` ON document.document_type_id = document_type.id
-                    WHERE  document_type.`technical_name` = 'invoice'"
-            . self::ORDER_BY_DOC
-        )->fetch();
-        $creditNoteQueryResult = $this->connection->executeQuery(
-            self::SELECT_DOC . '`document`'
-            . " JOIN `document_type` ON document.document_type_id = document_type.id
-                    WHERE  document_type.`technical_name` = 'credit_note'"
-            . self::ORDER_BY_DOC
-        )->fetch();
+        try {
+            $customerQueryResult = $this->connection->executeQuery(
+                self::$selectAutoInc . '`customer`' . self::$orderByAutoInc
+            )->fetch();
+            $abandonedCartQueryResult = $this->connection->executeQuery(
+                self::$selectClaroAutoInc . '`cart`' . self::$orderByClaroAutoInc
+            )->fetch();
+            $invoiceQueryResult = $this->connection->executeQuery(
+                self::$selectClaroAutoInc . '`document`'
+                . " JOIN `document_type` ON document.document_type_id = document_type.id
+                    WHERE  document_type.`technical_name` = '" . self::$docTypeInvoice . "'"
+                . self::$orderByClaroAutoInc
+            )->fetch();
+            $creditNoteQueryResult = $this->connection->executeQuery(
+                self::$selectClaroAutoInc . '`document`'
+                . " JOIN `document_type` ON document.document_type_id = document_type.id
+                    WHERE  document_type.`technical_name` = '" . self::$docTypeCreditNote . "'"
+                . self::$orderByClaroAutoInc
+            )->fetch();
+        } catch (Doctrine\DBAL\DBALException $exception) {
+            return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
+        }
 
         $lastProduct = $this->productRepository->search(new Criteria(), Context::createDefaultContext())->last();
         $lastOrder = $this->orderRepository->search(new Criteria(), Context::createDefaultContext())->last();
 
-        return new JsonResponse(
-            [
-                'product' => ($lastProduct ? (int)$lastProduct->getAutoIncrement() : 0),
-                'customer' => ($customerQueryResult ? (int)$customerQueryResult['id'] : 0),
-                'order' => ($lastOrder ? (int)$lastOrder->getAutoIncrement() : 0),
-                'abandonedcart' => ($abandonedCartQueryResult ? (int)$abandonedCartQueryResult['id'] : 0),
-                'invoice' => ($invoiceQueryResult ? (int)$invoiceQueryResult['id'] : 0),
-                'creditNote' => ($creditNoteQueryResult ? (int)$creditNoteQueryResult['id'] : 0),
-            ]
-        );
+        return new JsonResponse([
+            'product' => ($lastProduct ? (int)$lastProduct->getAutoIncrement() : 0),
+            'customer' => ($customerQueryResult ? (int)$customerQueryResult['id'] : 0),
+            'order' => ($lastOrder ? (int)$lastOrder->getAutoIncrement() : 0),
+            'abandonedcart' => ($abandonedCartQueryResult ? (int)$abandonedCartQueryResult['id'] : 0),
+            'invoice' => ($invoiceQueryResult ? (int)$invoiceQueryResult['id'] : 0),
+            'creditNote' => ($creditNoteQueryResult ? (int)$creditNoteQueryResult['id'] : 0),
+        ]);
     }
 }

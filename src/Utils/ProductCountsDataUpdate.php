@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Utils;
+namespace ClarobiClarobi\Utils;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
@@ -10,16 +10,18 @@ use Shopware\Core\Framework\Uuid\Uuid;
  * Class ProductCountsHelper
  * This is called when one of the events take place and product counts table needs to be updated.
  *
- * @package Clarobi\Utils
+ * @package ClarobiClarobi\Utils
  */
 class ProductCountsDataUpdate
 {
-    const PRODUCT_COUNTER_TABLE = 'clarobi_product_counts';
-
-    /**
-     * @var Connection
-     */
+    /** @var Connection $connection */
     private $connection;
+
+    protected static $productCountersTable = 'clarobi_product_counts';
+    public static $itemAddition = '+';
+    public static $itemSubtraction = '-';
+    public static $itemView = 'views';
+    public static $itemAddToCart = 'adds_to_cart';
 
     /**
      * ProductCountsDataUpdate constructor.
@@ -37,19 +39,19 @@ class ProductCountsDataUpdate
      * @param $productId
      * @param $productAutoIncrement
      * @param integer $count
-     * @param string $column Possible values: 'views' or 'adds_to_cart'.
-     * @param string $operation Possible value: '+' or '-'
+     * @param string $column
+     * @param string $operation
+     * @return bool
      */
     public function updateProductCountersTable($productId, $productAutoIncrement, $count, $column, $operation = '+')
     {
         $date = date('Y-m-d H:i:s', time());
 
-        $sql = "INSERT INTO " . self::PRODUCT_COUNTER_TABLE
+        $sql = "INSERT INTO " . self::$productCountersTable
             . " (`product_id`, `product_auto_increment`, `{$column}`,`created_at`)
                 VALUES (?,?,?,?)
                 ON DUPLICATE KEY
                 UPDATE `{$column}`  =  `{$column}` {$operation} ?, `updated_at` = ?";
-
         try {
             $productIdBinary = Uuid::fromHexToBytes($productId);
             $this->connection->executeUpdate(
@@ -57,10 +59,7 @@ class ProductCountsDataUpdate
                 [$productIdBinary, $productAutoIncrement, $count, $date, $count, $date]
             );
         } catch (DBALException $exception) {
-            /**
-             * @todo log in db.log file
-             */
-            die($exception->getMessage());
+            return false;
         }
     }
 }

@@ -1,21 +1,20 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Subscriber;
+namespace ClarobiClarobi\Subscriber;
 
-use Clarobi\Utils\ProductCountsDataUpdate;
+use ClarobiClarobi\Utils\ProductCountsDataUpdate;
 use Shopware\Storefront\Page\Product\ProductPage;
 use Shopware\Storefront\Page\Product\ProductPageLoadedEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * Class ProductPageLoadSubscriber
- * @package Clarobi\Subscriber
+ *
+ * @package ClarobiClarobi\Subscriber
  */
 class ProductPageLoadSubscriber implements EventSubscriberInterface
 {
-    /**
-     * @var ProductCountsDataUpdate
-     */
+    /** @var ProductCountsDataUpdate $dataUpdate */
     protected $dataUpdate;
 
     /**
@@ -29,7 +28,9 @@ class ProductPageLoadSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @inheritDoc
+     * Register events.
+     *
+     * @return array
      */
     public static function getSubscribedEvents()
     {
@@ -41,7 +42,7 @@ class ProductPageLoadSubscriber implements EventSubscriberInterface
     /**
      * @param ProductPageLoadedEvent $event
      */
-    public function onProductProductPageLoaded(ProductPageLoadedEvent $event): void
+    public function onProductProductPageLoaded(ProductPageLoadedEvent $event)
     {
         /** @var ProductPage $page */
         $page = $event->getPage();
@@ -50,7 +51,7 @@ class ProductPageLoadSubscriber implements EventSubscriberInterface
             $product->getId(),
             $product->getAutoIncrement(),
             1,
-            'views'
+            ProductCountsDataUpdate::$itemView
         );
     }
 }

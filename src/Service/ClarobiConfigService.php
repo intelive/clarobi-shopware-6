@@ -1,18 +1,22 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Service;
+namespace ClarobiClarobi\Service;
 
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 
 /**
  * Class ClarobiConfig
- * @package Clarobi\Service
+ *
+ * @package ClarobiClarobi\Service
  */
 class ClarobiConfigService
 {
-    /**
-     * @var SystemConfigService
-     */
+    private static $pluginName = 'ClarobiClarobi';
+    private static $licence = 'apiLicense';
+    private static $key = 'apiKey';
+    private static $secret = 'apiSecret';
+
+    /** @var SystemConfigService $systemConfigService */
     private $systemConfigService;
 
     public function __construct(SystemConfigService $systemConfigService)
@@ -21,16 +25,16 @@ class ClarobiConfigService
     }
 
     /**
-     * Return array of configs.
+     * Return plugin configurations.
      *
      * @return array
      */
     public function getConfigs()
     {
         return [
-            'apiLicense' => $this->systemConfigService->get('Clarobi.config.apiLicense'),
-            'apiKey' => $this->systemConfigService->get('Clarobi.config.apiKey'),
-            'apiSecret' => $this->systemConfigService->get('Clarobi.config.apiSecret')
+            self::$licence => $this->systemConfigService->get(self::$pluginName . '.config.' . self::$licence),
+            self::$key => $this->systemConfigService->get(self::$pluginName . '.config.' . self::$key),
+            self::$secret => $this->systemConfigService->get(self::$pluginName . '.config.' . self::$secret)
         ];
     }
 }

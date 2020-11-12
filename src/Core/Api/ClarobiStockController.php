@@ -1,16 +1,16 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Core\Api;
+namespace ClarobiClarobi\Core\Api;
 
 use Shopware\Core\Framework\Context;
-use Clarobi\Service\ClarobiConfigService;
-use Clarobi\Service\EncodeResponseService;
+use ClarobiClarobi\Service\ClarobiConfigService;
+use ClarobiClarobi\Service\EncodeResponseService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Core\Content\Product\ProductEntity;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
-use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
+use ClarobiClarobi\Core\Framework\Controller\ClarobiAbstractController;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
@@ -18,28 +18,22 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 
 /**
  * Class ClarobiStockController
- * @package Clarobi\Core\Api
+ *
+ * @package ClarobiClarobi\Core\Api
  */
 class ClarobiStockController extends ClarobiAbstractController
 {
-    const ENTITY_NAME = 'stock';
-    const ENTITY_TYPE = 'STOCK';
-
-    /**
-     * @var EntityRepositoryInterface
-     */
+    /** @var EntityRepositoryInterface $productRepository */
     protected $productRepository;
-    /**
-     * @var EncodeResponseService
-     */
+    /** @var EncodeResponseService $encodeResponse */
     protected $encodeResponse;
-
-    /**
-     * @var ClarobiConfigService
-     */
+    /** @var ClarobiConfigService $configService */
     protected $configService;
-
+    /** @var array $configs */
     protected $configs;
+
+    protected static $entityName = 'stock';
+    protected static $entityType = 'STOCK';
 
     /**
      * ClarobiStockController constructor.
@@ -62,15 +56,11 @@ class ClarobiStockController extends ClarobiAbstractController
 
     /**
      * @RouteScope(scopes={"storefront"})
-     * @Route("/clarobi/stock", name="clarobi.stock", methods={"GET"})
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * @Route(path="/clarobi/stock", name="clarobi.stock", methods={"GET"})
      */
     public function productCountersAction(Request $request)
     {
         try {
-            // Verify request
             $this->verifyToken($request, $this->configService->getConfigs());
 
             $context = Context::createDefaultContext();
@@ -96,9 +86,9 @@ class ClarobiStockController extends ClarobiAbstractController
 
             return new JsonResponse($this->encodeResponse->encodeResponse(
                 $data,
-                self::ENTITY_NAME,
+                self::$entityName,
                 0,
-                self::ENTITY_TYPE
+                self::$entityType
             ));
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);

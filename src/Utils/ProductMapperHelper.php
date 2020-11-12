@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Utils;
+namespace ClarobiClarobi\Utils;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
@@ -12,13 +12,12 @@ use Shopware\Core\Content\Property\Aggregate\PropertyGroupOption\PropertyGroupOp
 
 /**
  * Class ProductMapperHelper
- * @package Clarobi\Utils
+ *
+ * @package ClarobiClarobi\Utils
  */
 class ProductMapperHelper
 {
-    /**
-     * @var Connection
-     */
+    /** @var Connection $connection */
     protected $connection;
 
     /**
@@ -40,7 +39,6 @@ class ProductMapperHelper
     {
         $mergedArray = array_merge($options, $properties);
         $mapped = [];
-
         foreach ($mergedArray as $item) {
             if (!key_exists($item['label'], $mapped)) {
                 $mapped[$item['label']] = [
@@ -86,14 +84,6 @@ class ProductMapperHelper
      */
     public function mapOptionCollection(PropertyGroupOptionCollection $options)
     {
-        /** "options":{
-         *      "attribute_id": "1",
-         *      "item_id": "381", #order item id,// to be set in client
-         *      "label": "Manufacturer",
-         *      "value": "Made In China"
-         * }
-         */
-
         $mappedOptions = [];
 
         /** @var PropertyGroupOptionEntity $option */
@@ -128,7 +118,7 @@ class ProductMapperHelper
                 /** @var ProductEntity $product */
                 $product = $item['product'];
 
-                // Map product to get less data
+                // Unset product to manage less data
                 unset($item['product']);
 
                 $options = $this->mapOptionCollection($product->getOptions());
@@ -143,7 +133,6 @@ class ProductMapperHelper
                     $parentAutoIncrement = $result['auto_increment'];
                     $parentProductNumber = $result['product_number'];
                 }
-
                 $item['product'] = [
                     'autoIncrement' => $product->getAutoIncrement(),
                     'productNumber' => $product->getProductNumber(),
@@ -158,7 +147,6 @@ class ProductMapperHelper
                     ],
                     'options' => $this->mergeOptionsAndProperties($options, $properties)
                 ];
-
                 $lineItems[] = $item;
             }
         }

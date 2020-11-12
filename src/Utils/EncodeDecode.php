@@ -1,10 +1,11 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Utils;
+namespace ClarobiClarobi\Utils;
 
 /**
  * Class EncodeDecode
- * @package Clarobi\Utils
+ *
+ * @package ClarobiClarobi\Utils
  */
 class EncodeDecode
 {
@@ -13,6 +14,7 @@ class EncodeDecode
      *
      * @param $data
      * @return bool|string
+     * @throws \Exception
      */
     public static function compress($data)
     {
@@ -21,11 +23,7 @@ class EncodeDecode
             function_exists('base64_encode')
         ) {
             return base64_encode(gzcompress(serialize(($data))));
-        } else {
-            // todo: log error
-            // log error (__METHOD__ . ' : ' . 'Extensions zlib or gzcompress or base64_encode do not exist');
         }
-
         return false;
     }
 

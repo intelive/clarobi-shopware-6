@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Utils;
+namespace ClarobiClarobi\Utils;
 
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Content\Product\ProductEntity;
@@ -13,13 +13,12 @@ use Shopware\Core\Checkout\Cart\Event\LineItemQuantityChangedEvent;
 
 /**
  * Class ProductCountsDataExtractor
- * @package Clarobi\Utils
+ *
+ * @package ClarobiClarobi\Utils
  */
 class ProductCountsDataExtractor
 {
-    /**
-     * @var EntityRepository
-     */
+    /** @var EntityRepository $entityRespository */
     protected $entityRespository;
 
     /**
@@ -34,25 +33,28 @@ class ProductCountsDataExtractor
 
     /**
      * @param LineItemAddedEvent|LineItemQuantityChangedEvent|LineItemRemovedEvent $event
+     * @param bool $changedQuantity
      * @return array
      */
-    public function getLineItemDetails($event)
+    public function getLineItemDetails($event, $changedQuantity = false)
     {
         $itemType = $event->getLineItem()->getType();
 
-        $itemId = $itemAutoIncrement = $itemQty = 0;
         if ($itemType === LineItem::PRODUCT_LINE_ITEM_TYPE) {
             $itemId = $event->getLineItem()->getId();
             $itemQty = $event->getLineItem()->getQuantity();
             $itemAutoIncrement = $this->getProductAutoIncrement($itemId);
-
+            $oldQuantity = null;
+            if ($changedQuantity) {
+                $oldQuantity = $event->getLineItem()->getPriceDefinition()->getQuantity();
+            }
             return [
                 'id' => $itemId,
                 'auto_increment' => $itemAutoIncrement,
-                'quantity' => $itemQty
+                'quantity' => $itemQty,
+                'oldQuantity' => $oldQuantity
             ];
         }
-
         return [];
     }
 
@@ -64,11 +66,6 @@ class ProductCountsDataExtractor
      */
     protected function getProductAutoIncrement($itemId)
     {
-        /**
-         * @todo save id in table instead of auto_increment
-         *      and use this class when the route for product counters is called
-         *      to get auto_increment
-         */
         $itemAutoIncrement = 0;
 
         $context = Context::createDefaultContext();
@@ -81,7 +78,6 @@ class ProductCountsDataExtractor
             $itemAutoIncrement = $item->getAutoIncrement();
             break;
         }
-
         return $itemAutoIncrement;
     }
 }

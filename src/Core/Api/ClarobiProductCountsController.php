@@ -1,43 +1,35 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Core\Api;
+namespace ClarobiClarobi\Core\Api;
 
 use Doctrine\DBAL\Connection;
-use Clarobi\Service\ClarobiConfigService;
-use Clarobi\Service\EncodeResponseService;
+use ClarobiClarobi\Service\ClarobiConfigService;
+use ClarobiClarobi\Service\EncodeResponseService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
-use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
+use ClarobiClarobi\Core\Framework\Controller\ClarobiAbstractController;
 
 /**
  * Class ClarobiProductCountsController
- * @package Clarobi\Core\Api
+ *
+ * @package ClarobiClarobi\Core\Api
  */
 class ClarobiProductCountsController extends ClarobiAbstractController
 {
-    const ENTITY_NAME = 'product_counter';
-    const ENTITY_TYPE = 'PRODUCT_COUNTERS';
-
-    const PRODUCT_COUNTER_TABLE = 'clarobi_product_counts';
-
-    /**
-     * @var Connection
-     */
+    /** @var Connection $connection */
     protected $connection;
-
-    /**
-     * @var EncodeResponseService
-     */
+    /** @var EncodeResponseService $encodeResponse */
     protected $encodeResponse;
-
-    /**
-     * @var ClarobiConfigService
-     */
+    /** @var ClarobiConfigService $configService */
     protected $configService;
-
+    /** @var array $configs */
     protected $configs;
+
+    protected static $productCountersTable = 'clarobi_product_counts';
+    protected static $entityName = 'product_counter';
+    protected static $entityType = 'PRODUCT_COUNTERS';
 
     /**
      * ClarobiProductCountsController constructor.
@@ -46,10 +38,8 @@ class ClarobiProductCountsController extends ClarobiAbstractController
      * @param ClarobiConfigService $configService
      * @param EncodeResponseService $responseService
      */
-    public function __construct(
-        Connection $connection,
-        ClarobiConfigService $configService,
-        EncodeResponseService $responseService
+    public function __construct(Connection $connection, ClarobiConfigService $configService,
+                                EncodeResponseService $responseService
     )
     {
         $this->connection = $connection;
@@ -60,19 +50,15 @@ class ClarobiProductCountsController extends ClarobiAbstractController
 
     /**
      * @RouteScope(scopes={"storefront"})
-     * @Route("/clarobi/productCounters", name="clarobi.product.counters", methods={"GET"})
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * @Route(path="/clarobi/productCounters", name="clarobi.product.counters", methods={"GET"})
      */
     public function productCountersAction(Request $request)
     {
         try {
-            // Verify request
             $this->verifyToken($request, $this->configService->getConfigs());
 
             $results = $this->connection->executeQuery("
-                SELECT * FROM " . self::PRODUCT_COUNTER_TABLE
+                SELECT * FROM " . self::$productCountersTable
                 . " ORDER BY `product_auto_increment` ASC;
                 ")->fetchAll();
 
@@ -95,12 +81,11 @@ class ClarobiProductCountsController extends ClarobiAbstractController
                     ];
                 }
             }
-
             return new JsonResponse($this->encodeResponse->encodeResponse(
                 $data,
-                self::ENTITY_NAME,
+                self::$entityName,
                 0,
-                self::ENTITY_TYPE
+                self::$entityType
             ));
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);

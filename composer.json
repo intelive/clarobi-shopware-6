@@ -1,25 +1,49 @@
 {
     "name": "clarobi/clarobi",
-    "description": "Clarobi API plugin for analytics and statistics",
+    "description": "Custom APIs for integration with Claro App",
     "version": "v1.0.0",
     "type": "shopware-platform-plugin",
-    "license": "MIT",
+    "keywords": [
+        "revenue",
+        "customer statistics",
+        "sales analytics",
+        "data analytics"
+    ],
+    "license": "proprietary",
     "authors": [
         {
-            "name": "Interlive Metrics"
+            "name": "Interlive Claro",
+            "homepage": "https://clarobi.com",
+            "role": "Manufacturer"
         }
     ],
-    "autoload": {
-        "psr-4": {
-            "Clarobi\\": "src/"
-        }
+    "require": {
+        "shopware/core": "^6.1",
+        "shopware/storefront": "^6.1"
     },
     "extra": {
-        "shopware-plugin-class": "Clarobi\\Clarobi",
+        "shopware-plugin-class": "ClarobiClarobi\\ClarobiClarobi",
+        "copyright": "(c) by @clarobi 2019",
         "label": {
-            "en-GB": "Clarobi API plugin"
+            "de-DE": "ClarobiClarobi Plugin für Shopware",
+            "en-GB": "ClarobiClarobi plugin for Shopware"
+        },
+        "description": {
+            "de-DE": "Clarobi is a Shopware 6 plugin easy to install and configure which allows your store to integrate with our app (Claro App) for providing statistics and analytics for your business.",
+            "en-GB": "Clarobi is a Shopware 6 plugin easy to install and configure which allows your store to integrate with our app (Claro App) for providing statistics and analytics for your business."
+        },
+        "manufacturerLink": {
+            "de-DE": "https://clarobi.com",
+            "en-GB": "https://clarobi.com"
+        },
+        "supportLink": {
+            "de-DE": "https://clarobi.com",
+            "en-GB": "https://clarobi.com"
         }
     },
-    "require": {
+    "autoload": {
+        "psr-4": {
+            "ClarobiClarobi\\": "src/"
+        }
     }
 }

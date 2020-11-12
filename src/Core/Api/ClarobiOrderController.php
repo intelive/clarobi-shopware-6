@@ -1,18 +1,18 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Core\Api;
+namespace ClarobiClarobi\Core\Api;
 
-use Clarobi\Utils\ProductMapperHelper;
+use ClarobiClarobi\Utils\ProductMapperHelper;
 use Shopware\Core\Framework\Context;
-use Clarobi\Service\ClarobiConfigService;
-use Clarobi\Service\EncodeResponseService;
+use ClarobiClarobi\Service\ClarobiConfigService;
+use ClarobiClarobi\Service\EncodeResponseService;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Core\Checkout\Order\OrderCollection;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
-use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
+use ClarobiClarobi\Core\Framework\Controller\ClarobiAbstractController;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\RangeFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
@@ -24,33 +24,21 @@ use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionColl
 /**
  * Class ClarobiOrderController
  *
- * @RouteScope(scopes={"storefront"})
- * @package Clarobi\Core\Api
+ * @package ClarobiClarobi\Core\Api
  */
 class ClarobiOrderController extends ClarobiAbstractController
 {
-    /**
-     * @var EntityRepositoryInterface
-     */
+    /** @var EntityRepositoryInterface $orderRepository */
     protected $orderRepository;
-
-    /**
-     * @var EncodeResponseService
-     */
+    /** @var EncodeResponseService $encoder */
     protected $encoder;
-
-    /**
-     * @var ClarobiConfigService
-     */
+    /** @var ClarobiConfigService $configService */
     protected $configService;
-
+    /** @var ProductMapperHelper $mapperHelper */
     protected $mapperHelper;
 
-    const ENTITY_NAME = 'sales_order';
-
-    const IGNORED_KEYS = [
-//        'id', 'autoIncrement', 'orderNumber', 'orderDateTime', 'orderDate', 'price', 'amountTotal', 'shippingCosts',
-//        'amountNet', 'orderCustomer', 'createdAt', 'updatedAt', 'shippingTotal', 'salesChannelId',
+    protected static $entityName = 'sales_order';
+    protected static $ignoreKeys = [
         'currencyId', 'currency', 'lineItems', 'transactions', 'deliveries', 'addresses', 'currencyFactor',
         'billingAddressId', 'positionPrice', 'taxStatus', 'stateMachineState', 'languageId', 'language',
         'salesChannel', 'deepLinkCode', 'stateId', 'customFields', 'documents', 'tags', 'affiliateCode',
@@ -64,11 +52,8 @@ class ClarobiOrderController extends ClarobiAbstractController
      * @param ClarobiConfigService $configService
      * @param EncodeResponseService $responseService
      */
-    public function __construct(
-        EntityRepositoryInterface $orderRepository,
-        ClarobiConfigService $configService,
-        EncodeResponseService $responseService,
-        ProductMapperHelper $mapperHelper
+    public function __construct(EntityRepositoryInterface $orderRepository, ClarobiConfigService $configService,
+                                EncodeResponseService $responseService, ProductMapperHelper $mapperHelper
     )
     {
         $this->orderRepository = $orderRepository;
@@ -78,7 +63,8 @@ class ClarobiOrderController extends ClarobiAbstractController
     }
 
     /**
-     * @Route("/clarobi/order", name="clarobi.order.list")
+     * @RouteScope(scopes={"storefront"})
+     * @Route(path="/clarobi/order", name="clarobi.order.list", methods={"GET"})
      *
      * @param Request $request
      * @return JsonResponse
@@ -86,10 +72,8 @@ class ClarobiOrderController extends ClarobiAbstractController
     public function listAction(Request $request)
     {
         try {
-            // Verify token request
             $this->verifyParam($request);
             $this->verifyToken($request, $this->configService->getConfigs());
-            // Get param request
             $from_id = $request->get('from_id');
 
             $context = Context::createDefaultContext();
@@ -120,45 +104,30 @@ class ClarobiOrderController extends ClarobiAbstractController
                 $lastId = $element->getAutoIncrement();
             }
 
-            return new JsonResponse($this->encoder->encodeResponse(
-                $mappedEntities,
-                self::ENTITY_NAME,
-                $lastId
-            ));
+            return new JsonResponse($this->encoder->encodeResponse($mappedEntities, self::$entityName, $lastId));
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
     }
 
     /**
+     * Map order entity.
+     *
      * @param $order
      * @return mixed
      * @throws \Doctrine\DBAL\DBALException
      */
     private function mapOrderEntity($order)
     {
-//        $mappedKeys['entity_name'] = self::ENTITY_NAME;
-//        foreach ($order as $key => $value) {
-//            if (in_array($key, self::IGNORED_KEYS)) {
-//                continue;
-//            }
-//            $mappedKeys[$key] = $value;
-//        }
-        $mappedKeys = $this->ignoreEntityKeys($order, self::ENTITY_NAME, self::IGNORED_KEYS);
+        $mappedKeys = $this->ignoreEntityKeys($order, self::$entityName, self::$ignoreKeys);
 
-        // Get currency
         $mappedKeys['currency_isoCode'] = $order['currency']->getIsoCode();
-        // Get order status
         $mappedKeys['status'] = $order['stateMachineState']->getTechnicalName();
-
         /** @var OrderTransactionCollection $transactions */
         $transactions = $order['transactions'];
         $mappedKeys['paymentMethod'] = $transactions->last()->getPaymentMethod()->getName();
-
         /** @var OrderDeliveryCollection $deliveries */
         $deliveries = $order['deliveries'];
-
-        // Get order shipping description
         $mappedKeys['shippingDescription'] = $deliveries->last()->getShippingMethod()->getDescription();
 
         // Get billing and shipping address separate
@@ -173,8 +142,6 @@ class ClarobiOrderController extends ClarobiAbstractController
                 $mappedKeys['shippingAddress'] = $element;
             }
         }
-
-        // Get mapped line items
         $mappedKeys['lineItems'] = $this->mapperHelper->mapOrderLineItems($order);
 
         return $mappedKeys;

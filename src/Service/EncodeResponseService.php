@@ -1,22 +1,21 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Service;
+namespace ClarobiClarobi\Service;
 
-use Clarobi\Utils\EncodeDecode;
+use ClarobiClarobi\Utils\EncodeDecode;
 
 /**
  * Class EncodeResponse
- * @package Clarobi\Utils
+ *
+ * @package ClarobiClarobi\Utils
  */
 class EncodeResponseService
 {
-    /**
-     * @var ClarobiConfigService
-     */
+    /** @var ClarobiConfigService $configService */
     protected $configService;
-
+    /** @var string $apiSecret */
     protected $apiSecret;
-
+    /** @var string $apiLicense */
     protected $apiLicense;
 
     /**
@@ -34,6 +33,8 @@ class EncodeResponseService
     }
 
     /**
+     * Encode and compress data.
+     *
      * @param array $data
      * @param string $entityName
      * @param $lastId
@@ -43,8 +44,6 @@ class EncodeResponseService
     public function encodeResponse($data, $entityName, $lastId, $type = null)
     {
         $responseIsEncoded = $responseIsCompressed = false;
-
-        $originalData = $data;
 
         // Encode and compress the data only if we have it
         if (!empty($data)) {

@@ -1,9 +1,9 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Subscriber;
+namespace ClarobiClarobi\Subscriber;
 
-use Clarobi\Utils\ProductCountsDataUpdate;
-use Clarobi\Utils\ProductCountsDataExtractor;
+use ClarobiClarobi\Utils\ProductCountsDataUpdate;
+use ClarobiClarobi\Utils\ProductCountsDataExtractor;
 use Shopware\Core\Checkout\Cart\Event\LineItemAddedEvent;
 use Shopware\Core\Checkout\Cart\Event\LineItemRemovedEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -11,18 +11,14 @@ use Shopware\Core\Checkout\Cart\Event\LineItemQuantityChangedEvent;
 
 /**
  * Class CartUpdateSubscriber
- * @package Clarobi\Subscriber
+ *
+ * @package ClarobiClarobi\Subscriber
  */
 class CartUpdateSubscriber implements EventSubscriberInterface
 {
-    /**
-     * @var ProductCountsDataUpdate
-     */
+    /** @var ProductCountsDataUpdate $dataUpdate */
     protected $dataUpdate;
-
-    /**
-     * @var ProductCountsDataExtractor
-     */
+    /** @var ProductCountsDataExtractor $dataExtractor */
     protected $dataExtractor;
 
     /**
@@ -38,7 +34,9 @@ class CartUpdateSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @inheritDoc
+     * Register events.
+     *
+     * @return array
      */
     public static function getSubscribedEvents()
     {
@@ -63,28 +61,36 @@ class CartUpdateSubscriber implements EventSubscriberInterface
                 $valuesToInsert['id'],
                 $valuesToInsert['auto_increment'],
                 $valuesToInsert['quantity'],
-                'adds_to_cart',
-                '+'
+                ProductCountsDataUpdate::$itemAddToCart,
+                ProductCountsDataUpdate::$itemAddition
             );
         }
     }
 
     /**
-     * @todo delete - quantity increased  or decreased ?
      * This function is called whenever a line item quantity changes.
      *
      * @param LineItemQuantityChangedEvent $event
      */
-    public function onLineItemQuantityChanged(LineItemQuantityChangedEvent $event): void
+    public function onLineItemQuantityChanged(LineItemQuantityChangedEvent $event)
     {
-//        $valuesToInsert = $this->dataExtractor->getLineItemDetails($event);
-//        $this->dataUpdate->updateProductCountersTable(
-//            $valuesToInsert['id'],
-//            $valuesToInsert['auto_increment'],
-//            $valuesToInsert['quantity'],
-//            'adds_to_cart',
-//            '-'
-//        );
+        $valuesToInsert = $this->dataExtractor->getLineItemDetails($event, true);
+        if (!empty($valuesToInsert)) {
+            if ($valuesToInsert['oldQuantity'] < $valuesToInsert['quantity']) {
+                $operation = ProductCountsDataUpdate::$itemSubtraction;
+                $quantity = $valuesToInsert['quantity'];
+            } else {
+                $operation = ProductCountsDataUpdate::$itemAddition;
+                $quantity = $valuesToInsert['quantity'] - $valuesToInsert['oldQuantity'];
+            }
+            $this->dataUpdate->updateProductCountersTable(
+                $valuesToInsert['id'],
+                $valuesToInsert['auto_increment'],
+                $quantity,
+                ProductCountsDataUpdate::$itemAddToCart,
+                $operation
+            );
+        }
     }
 
     /**
@@ -101,8 +107,8 @@ class CartUpdateSubscriber implements EventSubscriberInterface
                 $valuesToInsert['id'],
                 $valuesToInsert['auto_increment'],
                 $valuesToInsert['quantity'],
-                'adds_to_cart',
-                '-'
+                ProductCountsDataUpdate::$itemAddToCart,
+                ProductCountsDataUpdate::$itemSubtraction
             );
         }
     }

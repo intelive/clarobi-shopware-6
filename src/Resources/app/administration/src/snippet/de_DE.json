@@ -1,0 +1,7 @@
+{
+    "clarobi-api-test-button": {
+        "title": "API Test",
+        "success": "Verbindung wurde erfolgreich getestet",
+        "error": "Verbindung konnte nicht hergestellt werden. Bitte stellen Sie sicher, dass Sie einen Clarobi für die aktuelle Domain haben!"
+    }
+}

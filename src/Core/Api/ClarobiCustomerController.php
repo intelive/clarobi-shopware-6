@@ -1,17 +1,17 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Core\Api;
+namespace ClarobiClarobi\Core\Api;
 
 use Shopware\Core\Framework\Context;
-use Clarobi\Service\ClarobiConfigService;
-use Clarobi\Service\EncodeResponseService;
+use ClarobiClarobi\Service\ClarobiConfigService;
+use ClarobiClarobi\Service\EncodeResponseService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Shopware\Core\Checkout\Customer\CustomerEntity;
 use Shopware\Core\System\Salutation\SalutationEntity;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
-use Clarobi\Core\Framework\Controller\ClarobiAbstractController;
+use ClarobiClarobi\Core\Framework\Controller\ClarobiAbstractController;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
@@ -21,33 +21,20 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 /**
  * Class ClarobiCustomerController
  *
- * @RouteScope(scopes={"storefront"})
- * @package Clarobi\Core\Api
+ * @package ClarobiClarobi\Core\Api
  */
 class ClarobiCustomerController extends ClarobiAbstractController
 {
-    /**
-     * @var EntityRepositoryInterface
-     */
+    /** @var EntityRepositoryInterface $customerRepository */
     protected $customerRepository;
-
-    /**
-     * @var EncodeResponseService
-     */
+    /** @var EncodeResponseService $encodeResponse */
     protected $encodeResponse;
-
-    /**
-     * @var ClarobiConfigService
-     */
+    /** @var ClarobiConfigService $configService */
     protected $configService;
 
-    const ENTITY_NAME = 'customer';
-
-    const IGNORED_KEYS = [
-//        'id', 'autoIncrement', 'firstName', 'lastName', 'email', 'guest', 'createdAt', 'title', 'group',
-//        'defaultBillingAddress', 'defaultShippingAddress', 'birthday', 'salesChannelId',
-        'salutation', 'groupId', 'defaultPaymentMethodId',
-        'languageId', 'lastPaymentMethodId',
+    protected static $entityName = 'customer';
+    protected static $ignoreKeys = [
+        'salutation', 'groupId', 'defaultPaymentMethodId', 'languageId', 'lastPaymentMethodId',
         'defaultBillingAddressId', 'defaultShippingAddressId', 'customerNumber', 'salutationId', 'company', 'password',
         'affiliateCode', 'campaignCode', 'active', 'doubleOptInRegistration', 'doubleOptInEmailSentDate',
         'doubleOptInConfirmDate', 'hash', 'firstLogin', 'lastLogin', 'newsletter', 'lastOrderDate', 'orderCount',
@@ -65,10 +52,8 @@ class ClarobiCustomerController extends ClarobiAbstractController
      * @param ClarobiConfigService $configService
      * @param EncodeResponseService $responseService
      */
-    public function __construct(
-        EntityRepositoryInterface $customerRepository,
-        ClarobiConfigService $configService,
-        EncodeResponseService $responseService
+    public function __construct(EntityRepositoryInterface $customerRepository, ClarobiConfigService $configService,
+                                EncodeResponseService $responseService
     )
     {
         $this->customerRepository = $customerRepository;
@@ -77,18 +62,14 @@ class ClarobiCustomerController extends ClarobiAbstractController
     }
 
     /**
-     * @Route("/clarobi/customer", name="clarobi.customer.list")
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * @RouteScope(scopes={"storefront"})
+     * @Route(path="/clarobi/customer", name="clarobi.customer.list", methods={"GET"})
      */
     public function listAction(Request $request)
     {
         try {
-            // Verify token request
             $this->verifyParam($request);
             $this->verifyToken($request, $this->configService->getConfigs());
-            // Get param request
             $from_id = $request->get('from_id');
 
             $context = Context::createDefaultContext();
@@ -114,33 +95,25 @@ class ClarobiCustomerController extends ClarobiAbstractController
                 $lastId = $element->getAutoIncrement();
             }
 
-            return new JsonResponse($this->encodeResponse->encodeResponse(
-                $mappedEntities,
-                self::ENTITY_NAME,
-                $lastId
-            ));
+            return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::$entityName, $lastId));
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
     }
 
     /**
+     * Map customer entity.
+     *
      * @param $customer
      * @return mixed
      */
     private function mapCustomerEntity($customer)
     {
-        $mappedKeys = $this->ignoreEntityKeys(
-            $customer,
-            self::ENTITY_NAME,
-            self::IGNORED_KEYS
-        );
+        $mappedKeys = $this->ignoreEntityKeys($customer, self::$entityName, self::$ignoreKeys);
 
         /** @var SalutationEntity $salutation */
         $salutation = $customer['salutation'];
-
-        // Possible values: not_specified, mr, mrs
-        $mappedKeys['salutation'] = $salutation->getSalutationKey();
+        $mappedKeys['salutation'] = $salutation->getSalutationKey();    // Possible values: not_specified, mr, mrs
 
         return $mappedKeys;
     }

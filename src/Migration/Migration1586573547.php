@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Clarobi\Migration;
+namespace ClarobiClarobi\Migration;
 
 use Doctrine\DBAL\Connection;
 use Shopware\Core\Framework\Migration\MigrationStep;
@@ -22,14 +22,21 @@ class Migration1586573547 extends MigrationStep
      */
     public function update(Connection $connection): void
     {
-        $connection->executeUpdate('
-            ALTER TABLE `document`
-            ADD COLUMN `clarobi_auto_increment` INTEGER(11) unsigned NOT NULL AUTO_INCREMENT UNIQUE;
-        ');
+        $query = <<<SQL
+                    ALTER TABLE `document`
+                    ADD COLUMN `clarobi_auto_increment` INTEGER(11) unsigned NOT NULL AUTO_INCREMENT UNIQUE;
+SQL;
+
+        $connection->executeUpdate($query);
     }
 
+    /**
+     * Remove auto_increment column from `document` table on plugin uninstall.
+     *
+     * @param Connection $connection
+     * @throws \Doctrine\DBAL\DBALException
+     */
     public function updateDestructive(Connection $connection): void
     {
-        // todo implement drop column on uninstall/delete plugin
     }
 }

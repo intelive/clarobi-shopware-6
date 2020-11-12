@@ -2,10 +2,8 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/platform/master/src/Core/System/SystemConfig/Schema/config.xsd">
 
-    <!--Plugin configuration page-->
-    <!--This is used to save in db ClarobiCredentials-->
     <card>
-        <title>Clarobi plugin configuration</title>
+        <title>Clarobi configuration</title>
 
         <name>
             Please fill in your personal Clarobi credentials below for your plugin to take action.
@@ -15,22 +13,39 @@
             <name>apiLicense</name>
             <label>Api License</label>
             <required>true</required>
-            <placeholder>XXXXXXXX</placeholder>
+            <placeholder>YOUR_CLAROBI_PROVIDED_LICENSE</placeholder>
+            <helpText>Note: this configuration will be used for all sales channels. Please select 'All Sales
+                Channels'.
+            </helpText>
         </input-field>
 
         <input-field type="text">
             <name>apiKey</name>
             <label>Api Key</label>
             <required>true</required>
-            <placeholder>XXXXXXXX</placeholder>
+            <placeholder>YOUR_CLAROBI_PROVIDED_API_KEY</placeholder>
+            <helpText>Note: this configuration will be used for all sales channels. Please select 'All Sales
+                Channels'.
+            </helpText>
         </input-field>
 
         <input-field type="text">
             <name>apiSecret</name>
             <label>Api Secret</label>
             <required>true</required>
-            <placeholder>XXXXXXXX</placeholder>
+            <placeholder>YOUR_CLAROBI_PROVIDED_API_SECRET</placeholder>
+            <helpText>Note: this configuration will be used for all sales channels. Please select 'All Sales
+                Channels'.
+            </helpText>
         </input-field>
+    </card>
+
+    <card>
+        <title>Test</title>
+        <component name="clarobi-api-test-button">
+            <name>apiTest</name>
+            <label>API Test</label>
+        </component>
     </card>
 
 </config>
