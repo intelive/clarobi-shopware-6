@@ -27,7 +27,6 @@ class ClarobiProductCountsController extends ClarobiAbstractController
     /** @var array $configs */
     protected $configs;
 
-    protected static $productCountersTable = 'clarobi_product_counts';
     protected static $entityName = 'product_counter';
     protected static $entityType = 'PRODUCT_COUNTERS';
 
@@ -57,9 +56,10 @@ class ClarobiProductCountsController extends ClarobiAbstractController
         try {
             $this->verifyToken($request, $this->configService->getConfigs());
 
+            // DAL not used: Query operation on custom table 'clarobi_product_counts'
             $results = $this->connection->executeQuery("
-                SELECT * FROM " . self::$productCountersTable
-                . " ORDER BY `product_auto_increment` ASC;
+                    SELECT * FROM `clarobi_product_counts`
+                    ORDER BY `product_auto_increment` ASC;
                 ")->fetchAll();
 
             $date = date('Y-m-d H:i:s', time());

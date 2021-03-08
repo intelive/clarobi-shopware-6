@@ -2,13 +2,16 @@
 
 namespace ClarobiClarobi\Utils;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DBALException;
+use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Content\Product\ProductEntity;
 use Shopware\Core\Content\Product\ProductCollection;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Content\Property\Aggregate\PropertyGroupOption\PropertyGroupOptionEntity;
 use Shopware\Core\Content\Property\Aggregate\PropertyGroupOption\PropertyGroupOptionCollection;
+use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 
 /**
  * Class ProductMapperHelper
@@ -17,17 +20,17 @@ use Shopware\Core\Content\Property\Aggregate\PropertyGroupOption\PropertyGroupOp
  */
 class ProductMapperHelper
 {
-    /** @var Connection $connection */
-    protected $connection;
+    /** @var EntityRepository $productRepository */
+    protected $productRepository;
 
     /**
      * ProductMapperHelper constructor.
      *
-     * @param Connection $connection
+     * @param EntityRepositoryInterface $productRepository
      */
-    public function __construct(Connection $connection)
+    public function __construct(EntityRepositoryInterface $productRepository)
     {
-        $this->connection = $connection;
+        $this->productRepository = $productRepository;
     }
 
     /**
@@ -103,11 +106,11 @@ class ProductMapperHelper
     }
 
     /**
-     * @param $order
+     * @param OrderEntity $order
+     * @param Context $context
      * @return array
-     * @throws DBALException
      */
-    public function mapOrderLineItems($order)
+    public function mapOrderLineItems($order, $context)
     {
         $lineItems = [];
 
@@ -126,12 +129,11 @@ class ProductMapperHelper
 
                 $parentAutoIncrement = $parentProductNumber = null;
                 if ($product->getParentId()) {
-                    $result = $this->connection->executeQuery(
-                        'SELECT `auto_increment`, `product_number`
-                                FROM `product` WHERE id = ' . '0x' . $product->getParentId() . ';'
-                    )->fetch();
-                    $parentAutoIncrement = $result['auto_increment'];
-                    $parentProductNumber = $result['product_number'];
+                    $criteria = new Criteria([$product->getParentId()]);
+                    /** @var ProductEntity $parentProduct */
+                    $parentProduct = $this->productRepository->search($criteria, $context)->first();
+                    $parentAutoIncrement = $parentProduct->getAutoIncrement();
+                    $parentProductNumber = $parentProduct->getProductNumber();
                 }
                 $item['product'] = [
                     'autoIncrement' => $product->getAutoIncrement(),

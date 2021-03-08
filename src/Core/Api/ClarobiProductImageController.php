@@ -36,7 +36,10 @@ class ClarobiProductImageController extends AbstractController
     protected $mediaDefaultFolderRepository;
     /** @var EntityRepositoryInterface */
     protected $mediaConfigThumbnailSizeRepo;
+    /** @var Context $context */
+    protected $context;
 
+    protected static $contextKey = 'sw-context';
     protected static $error = 'ERROR: ';
     protected static $width = 50;
 
@@ -74,8 +77,9 @@ class ClarobiProductImageController extends AbstractController
                 ->addAssociation('media')
                 ->setLimit(1);
 
+            $this->context = $request->get(self::$contextKey);
             /** @var ProductEntity $product */
-            $product = $this->productRepository->search($criteria, Context::createDefaultContext())->first();
+            $product = $this->productRepository->search($criteria, $this->context)->first();
             if (!$product) {
                 throw new \Exception('Cannot load product.');
             }
@@ -89,7 +93,7 @@ class ClarobiProductImageController extends AbstractController
             $minWidth = 1920;
             $mediaElements = $product->getMedia()->getMedia()->getElements();
             foreach ($mediaElements as $media) {
-                $resultGenerate = $this->thumbnailService->generateThumbnails($media, Context::createDefaultContext());
+                $resultGenerate = $this->thumbnailService->generateThumbnails($media, $this->context);
 
                 /** @var MediaThumbnailEntity $thumbnail */
                 foreach ($media->getThumbnails() as $thumbnail) {
@@ -148,23 +152,14 @@ class ClarobiProductImageController extends AbstractController
     {
         $mediaCriteria = new Criteria();
         $mediaCriteria->addFilter(new EqualsFilter('width', $thumbnailSize));
-        $mediaSizeColl = $this->mediaThumbnailSizeRepository->search(
-            $mediaCriteria,
-            Context::createDefaultContext()
-        )->getEntities();
+        $mediaSizeColl = $this->mediaThumbnailSizeRepository->search($mediaCriteria, $this->context)->getEntities();
         if (!$mediaSizeColl->count()) {
-            $this->mediaThumbnailSizeRepository->upsert(
-                [
-                    ['width' => $thumbnailSize, 'height' => $thumbnailSize],
-                ],
-                Context::createDefaultContext());
+            $this->mediaThumbnailSizeRepository->upsert([['width' => $thumbnailSize, 'height' => $thumbnailSize],],
+                $this->context);
         }
 
         /** @var MediaThumbnailSizeEntity $mediaThumbnailSizeColl */
-        $newMediaThumbnailSize = $this->mediaThumbnailSizeRepository->search(
-            $mediaCriteria,
-            Context::createDefaultContext()
-        )->first();
+        $newMediaThumbnailSize = $this->mediaThumbnailSizeRepository->search($mediaCriteria, $this->context)->first();
 
         if ($newMediaThumbnailSize) {
             $criteria = new Criteria();
@@ -172,21 +167,16 @@ class ClarobiProductImageController extends AbstractController
                 ->addAssociation('folder.configuration');
 
             /** @var MediaDefaultFolderEntity $mediaDefaultFolderEntity */
-            $mediaDefaultFolder = $this->mediaDefaultFolderRepository->search(
-                $criteria, Context::createDefaultContext()
-            )->first();
+            $mediaDefaultFolder = $this->mediaDefaultFolderRepository->search($criteria, $this->context)->first();
 
             /** @var MediaFolderEntity $mediaFolder */
             $mediaFolder = $mediaDefaultFolder->getFolder();
             if ($mediaFolder) {
                 $mediaFolderConfigId = $mediaFolder->getConfigurationId();
-                $this->mediaConfigThumbnailSizeRepo->upsert(
-                    [[
-                        'mediaFolderConfigurationId' => $mediaFolderConfigId,
-                        'mediaThumbnailSizeId' => $newMediaThumbnailSize->getId()
-                    ]],
-                    Context::createDefaultContext()
-                );
+                $this->mediaConfigThumbnailSizeRepo->upsert([[
+                    'mediaFolderConfigurationId' => $mediaFolderConfigId,
+                    'mediaThumbnailSizeId' => $newMediaThumbnailSize->getId()
+                ]], $this->context);
             }
         }
     }

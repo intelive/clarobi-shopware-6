@@ -2,11 +2,16 @@
 
 namespace ClarobiClarobi\Core\Api;
 
+use ClarobiClarobi\Utils\AutoIncrementHelper;
 use Doctrine\DBAL\Connection;
 use ClarobiClarobi\Service\ClarobiConfigService;
-use Shopware\Core\Framework\Context;
+use Doctrine\DBAL\DBALException;
+use Shopware\Core\Checkout\Document\DocumentGenerator\CreditNoteGenerator;
+use Shopware\Core\Checkout\Document\DocumentGenerator\InvoiceGenerator;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
@@ -14,25 +19,23 @@ use ClarobiClarobi\Core\Framework\Controller\ClarobiAbstractController;
 
 /**
  * Class ClarobiDataCountersController
+ *
  * @package ClarobiClarobi\Core\Api
  */
 class ClarobiDataCountersController extends ClarobiAbstractController
 {
-    /** @var Connection $connection */
-    protected $connection;
+    /** @var AutoIncrementHelper $helper */
+    protected $helper;
     /** @var ClarobiConfigService $config */
     protected $config;
     /** @var EntityRepositoryInterface $productRepository */
     protected $productRepository;
+    /** @var EntityRepositoryInterface $customerRepository */
+    protected $customerRepository;
     /** @var EntityRepositoryInterface $orderRepository */
     protected $orderRepository;
-
-    protected static $selectAutoInc = 'SELECT `auto_increment` as id FROM ';
-    protected static $selectClaroAutoInc = 'SELECT `clarobi_auto_increment` as id FROM ';
-    protected static $orderByAutoInc = ' ORDER BY `auto_increment` DESC LIMIT 1;';
-    protected static $orderByClaroAutoInc = ' ORDER BY `clarobi_auto_increment` DESC LIMIT 1;';
-    protected static $docTypeInvoice = 'invoice';
-    protected static $docTypeCreditNote = 'credit_note';
+    /** @var EntityRepositoryInterface $documentRepository */
+    protected $documentRepository;
 
     /**
      * ClarobiDataCountersController constructor.
@@ -40,55 +43,65 @@ class ClarobiDataCountersController extends ClarobiAbstractController
      * @param Connection $connection
      * @param ClarobiConfigService $config
      */
-    public function __construct(Connection $connection, ClarobiConfigService $config,
-                                EntityRepositoryInterface $productRepo, EntityRepositoryInterface $orderRepo
+    public function __construct(AutoIncrementHelper $helper, ClarobiConfigService $config,
+                                EntityRepositoryInterface $productRepo, EntityRepositoryInterface $customerRepo,
+                                EntityRepositoryInterface $orderRepo, EntityRepositoryInterface $documentRepo
     )
     {
         $this->config = $config;
-        $this->connection = $connection;
+        $this->helper = $helper;
         $this->productRepository = $productRepo;
+        $this->customerRepository = $customerRepo;
         $this->orderRepository = $orderRepo;
+        $this->documentRepository = $documentRepo;
     }
 
     /**
      * @RouteScope(scopes={"storefront"})
      * @Route(path="/clarobi/dataCounters", name="clarobi.action.data.counters", methods={"GET"})
      */
-    public function dataCountersAction()
+    public function dataCountersAction(Request $request): JsonResponse
     {
         try {
-            $customerQueryResult = $this->connection->executeQuery(
-                self::$selectAutoInc . '`customer`' . self::$orderByAutoInc
-            )->fetch();
-            $abandonedCartQueryResult = $this->connection->executeQuery(
-                self::$selectClaroAutoInc . '`cart`' . self::$orderByClaroAutoInc
-            )->fetch();
-            $invoiceQueryResult = $this->connection->executeQuery(
-                self::$selectClaroAutoInc . '`document`'
-                . " JOIN `document_type` ON document.document_type_id = document_type.id
-                    WHERE  document_type.`technical_name` = '" . self::$docTypeInvoice . "'"
-                . self::$orderByClaroAutoInc
-            )->fetch();
-            $creditNoteQueryResult = $this->connection->executeQuery(
-                self::$selectClaroAutoInc . '`document`'
-                . " JOIN `document_type` ON document.document_type_id = document_type.id
-                    WHERE  document_type.`technical_name` = '" . self::$docTypeCreditNote . "'"
-                . self::$orderByClaroAutoInc
-            )->fetch();
-        } catch (Doctrine\DBAL\DBALException $exception) {
+            $this->context = $request->get($this::$contextKey);
+
+            return new JsonResponse([
+                'product' => $this->getEntityId('product'),
+                'customer' => $this->getEntityId('customer'),
+                'order' => $this->getEntityId('order'),
+                'invoice' => $this->helper->getDocLastAutoInc(InvoiceGenerator::INVOICE),
+                'creditNote' => $this->helper->getDocLastAutoInc(CreditNoteGenerator::CREDIT_NOTE),
+                'abandonedcart' => $this->helper->getLastAbandonedCartId()
+            ]);
+        } catch (\Doctrine\DBAL\DBALException $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
+    }
 
-        $lastProduct = $this->productRepository->search(new Criteria(), Context::createDefaultContext())->last();
-        $lastOrder = $this->orderRepository->search(new Criteria(), Context::createDefaultContext())->last();
-
-        return new JsonResponse([
-            'product' => ($lastProduct ? (int)$lastProduct->getAutoIncrement() : 0),
-            'customer' => ($customerQueryResult ? (int)$customerQueryResult['id'] : 0),
-            'order' => ($lastOrder ? (int)$lastOrder->getAutoIncrement() : 0),
-            'abandonedcart' => ($abandonedCartQueryResult ? (int)$abandonedCartQueryResult['id'] : 0),
-            'invoice' => ($invoiceQueryResult ? (int)$invoiceQueryResult['id'] : 0),
-            'creditNote' => ($creditNoteQueryResult ? (int)$creditNoteQueryResult['id'] : 0),
-        ]);
+    /**
+     * @param $entityName
+     * @return int
+     * @throws \Shopware\Core\Framework\DataAbstractionLayer\Exception\InconsistentCriteriaIdsException
+     */
+    protected function getEntityId($entityName)
+    {
+        $criteria = new Criteria();
+        $criteria->setLimit(1);
+        $criteria->addSorting(new FieldSorting('autoIncrement', FieldSorting::DESCENDING));
+        switch ($entityName) {
+            case 'product':
+                $entity = $this->productRepository->search($criteria, $this->context)->first();
+                break;
+            case 'customer':
+                $entity = $this->customerRepository->search($criteria, $this->context)->first();
+                break;
+            case 'order':
+                $entity = $this->orderRepository->search($criteria, $this->context)->first();
+                break;
+            default:
+                $entity = null;
+                break;
+        }
+        return ($entity ? (int)$entity->getAutoIncrement() : 0);
     }
 }

@@ -13,21 +13,26 @@ class Migration1586572902 extends MigrationStep
     }
 
     /**
-     * Add auto_increment column to `cart` table on plugin install.
-     * New column name: `clarobi_auto_increment`
+     * Create `clarobi_entity_auto_increment` table on plugin install.
+     * Used for saving auto_increment id for cart and document entities.
      *
      * @param Connection $connection
      * @throws \Doctrine\DBAL\DBALException
      */
     public function update(Connection $connection): void
     {
-        $query = <<<SQL
-                    ALTER TABLE `cart`
-                    ADD COLUMN `clarobi_auto_increment` INTEGER(11) unsigned
-                        NOT NULL AUTO_INCREMENT UNIQUE;
-SQL;
-
-        $connection->executeUpdate($query);
+        $connection->executeUpdate("
+            DROP TABLE IF EXISTS `clarobi_entity_auto_increment`;
+        ");
+        $connection->executeUpdate("
+            CREATE TABLE IF NOT EXISTS `clarobi_entity_auto_increment` (
+                    `entity_type` ENUM('cart','document') NOT NULL,
+                    `entity_auto_increment` INTEGER(11) NOT NULL AUTO_INCREMENT,
+                    `entity_id` BINARY(16) DEFAULT NULL UNIQUE,
+                    `entity_token` VARCHAR(100) DEFAULT NULL,
+                    PRIMARY KEY (`entity_auto_increment`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
     }
 
     /**

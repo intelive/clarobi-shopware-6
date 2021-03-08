@@ -3,7 +3,8 @@
 namespace ClarobiClarobi\Core\Api;
 
 use Doctrine\DBAL\Connection;
-use Shopware\Core\Framework\Context;
+use Doctrine\DBAL\ParameterType;
+use Shopware\Core\Checkout\Document\DocumentEntity;
 use Shopware\Core\Framework\Uuid\Uuid;
 use ClarobiClarobi\Service\ClarobiConfigService;
 use ClarobiClarobi\Service\EncodeResponseService;
@@ -31,6 +32,8 @@ class ClarobiBaseDocumentController extends ClarobiAbstractController
     public $hexIds = [];
     public $incrementIds = [];
 
+    public static $documentEntity = 'document';
+
     protected static $ignoreKeys = [
         'fileType', 'orderId', 'orderVersionId', 'documentTypeId', 'documentMediaFileId', 'deepLinkCode',
         'customFields', 'referencedDocumentId', 'referencedDocument', 'dependentDocuments', 'documentMediaFile',
@@ -57,27 +60,41 @@ class ClarobiBaseDocumentController extends ClarobiAbstractController
      * Get document id based on their type (invoice, credit_note, storno_bill, delivery_note).
      *
      * @param $type
+     * @param $specificType
      * @param $from_id
      * @throws \Doctrine\DBAL\DBALException
      */
-    public function getDocumentIdsByType($type, $from_id)
+    public function getDocumentIdsByType($type, $specificType, $from_id)
     {
         // Get only 2 types of documents
-        $selectIdAutoInc = $this->connection->executeQuery("
-                    SELECT d.`id`, d.`clarobi_auto_increment`
-                    FROM `document` d
-                    JOIN `document_type` dt ON d.document_type_id = dt.id
-                    WHERE d.`clarobi_auto_increment` > {$from_id}
-                    	AND dt.`technical_name` = '{$type}'
-                    ORDER BY d.`clarobi_auto_increment` ASC LIMIT 50 ;
-            ");
 
-        $idsResult = $selectIdAutoInc->fetchAll();
+        // DAL not used: Query operation on custom table 'clarobi_entity_auto_increment'
+        $sql = <<<SQL
+SELECT `entity_auto_increment`, `entity_id`
+FROM `clarobi_entity_auto_increment`
+WHERE `entity_auto_increment` > :fromId
+	AND `entity_type` = :entityType
+	AND `entity_token` = :specificType
+ORDER BY `entity_auto_increment` ASC LIMIT 50 ;
+SQL;
+        $idsResult = $this->connection->executeQuery(
+            $sql,
+            [
+                'fromId' => $from_id,
+                'entityType' => $type,
+                'specificType' => $specificType,
+            ],
+            [
+                'fromId' => ParameterType::INTEGER,
+                'entityType' => ParameterType::STRING,
+                'entityToken' => ParameterType::STRING,
+            ]
+        )->fetchAll();
 
         if ($idsResult) {
             foreach ($idsResult as $item) {
-                $this->hexIds[] = Uuid::fromBytesToHex($item['id']);
-                $this->incrementIds[Uuid::fromBytesToHex($item['id'])] = $item['clarobi_auto_increment'];
+                $this->hexIds[] = Uuid::fromBytesToHex($item['entity_id']);
+                $this->incrementIds[Uuid::fromBytesToHex($item['entity_id'])] = $item['entity_auto_increment'];
             }
         }
     }
@@ -86,20 +103,16 @@ class ClarobiBaseDocumentController extends ClarobiAbstractController
      * Get documents collection from ids.
      *
      * @param array $ids
-     * @return \Shopware\Core\Checkout\Document\DocumentEntity[]
+     * @return DocumentEntity[]
      */
     public function getDocumentCollectionFromIds($ids)
     {
         // Get entities
-        $context = Context::createDefaultContext();
         $criteria = new Criteria($ids);
-        $criteria->addAssociation('order')
-            ->addAssociation('order.lineItems')
-            ->addAssociation('order.lineItems.product')
-            ->addAssociation('order.currency');
+        $criteria->addAssociations(['order', 'order.lineItems', 'order.lineItems.product', 'order.currency']);
 
         /** @var DocumentCollection $entities */
-        $entities = $this->documentRepository->search($criteria, $context);
+        $entities = $this->documentRepository->search($criteria, $this->context);
 
         return $entities->getElements();
     }

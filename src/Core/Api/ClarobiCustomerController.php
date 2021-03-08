@@ -2,7 +2,6 @@
 
 namespace ClarobiClarobi\Core\Api;
 
-use Shopware\Core\Framework\Context;
 use ClarobiClarobi\Service\ClarobiConfigService;
 use ClarobiClarobi\Service\EncodeResponseService;
 use Symfony\Component\HttpFoundation\Request;
@@ -65,25 +64,25 @@ class ClarobiCustomerController extends ClarobiAbstractController
      * @RouteScope(scopes={"storefront"})
      * @Route(path="/clarobi/customer", name="clarobi.customer.list", methods={"GET"})
      */
-    public function listAction(Request $request)
+    public function listAction(Request $request): JsonResponse
     {
         try {
+            $this->context = $request->get(self::$contextKey);
+
             $this->verifyParam($request);
             $this->verifyToken($request, $this->configService->getConfigs());
             $from_id = $request->get('from_id');
 
-            $context = Context::createDefaultContext();
             $criteria = new Criteria();
             $criteria->setLimit(50)
                 ->addFilter(new RangeFilter('autoIncrement', ['gt' => $from_id]))
                 ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
-                ->addAssociation('group')
-                ->addAssociation('salutation')
-                ->addAssociation('defaultBillingAddress.country')
-                ->addAssociation('defaultShippingAddress.country');
+                ->addAssociations(['group', 'salutation', 'defaultBillingAddress.country',
+                    'defaultShippingAddress.country'
+                ]);
 
             /** @var EntityCollection $entities */
-            $entities = $this->customerRepository->search($criteria, $context);
+            $entities = $this->customerRepository->search($criteria, $this->context);
 
             $mappedEntities = [];
             $lastId = 0;
@@ -105,7 +104,7 @@ class ClarobiCustomerController extends ClarobiAbstractController
      * Map customer entity.
      *
      * @param $customer
-     * @return mixed
+     * @return array
      */
     private function mapCustomerEntity($customer)
     {

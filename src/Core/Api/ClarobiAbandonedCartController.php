@@ -3,8 +3,8 @@
 namespace ClarobiClarobi\Core\Api;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DBALException;
-use Shopware\Core\Framework\Context;
+use Doctrine\DBAL\ParameterType;
+use Shopware\Core\Checkout\Customer\CustomerEntity;
 use Shopware\Core\Checkout\Cart\Cart;
 use ClarobiClarobi\Service\ClarobiConfigService;
 use ClarobiClarobi\Service\EncodeResponseService;
@@ -34,6 +34,7 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
     protected $configService;
     /** @var EntityRepositoryInterface $productRepository */
     protected $productRepository;
+    protected $customerRepository;
 
     protected static $entityName = 'abandonedcart';
     protected static $ignoreKeys = [
@@ -48,36 +49,43 @@ class ClarobiAbandonedCartController extends ClarobiAbstractController
      * @param EncodeResponseService $responseService
      */
     public function __construct(Connection $connection, ClarobiConfigService $configService,
-                                EncodeResponseService $responseService, EntityRepositoryInterface $productRepository
+                                EncodeResponseService $responseService, EntityRepositoryInterface $productRepository,
+                                EntityRepositoryInterface $customerRepository
     )
     {
         $this->connection = $connection;
         $this->configService = $configService;
         $this->encodeResponse = $responseService;
         $this->productRepository = $productRepository;
+        $this->customerRepository = $customerRepository;
     }
 
     /**
      * @RouteScope(scopes={"storefront"})
      * @Route(path="/clarobi/abandonedcart", name="clarobi.abandonedcart.list", methods={"GET"})
      */
-    public function listAction(Request $request)
+    public function listAction(Request $request): JsonResponse
     {
         try {
+            $this->context = $request->get(self::$contextKey);
+
             $this->verifyParam($request);
             $this->verifyToken($request, $this->configService->getConfigs());
             $from_id = $request->get('from_id');
 
             // Get carts created 2 days ago
-            $query = <<<SQL
-                        SELECT cart.`*`FROM `cart`
-                        WHERE cart.`clarobi_auto_increment` >= {$from_id}
-                            AND DATE(cart.`created_at`) = DATE_SUB(DATE(NOW()), INTERVAL 2 DAY)
-                        ORDER BY cart.`clarobi_auto_increment` ASC
-                        LIMIT 50;
+            // DAL not used: Query operation with JOIN on custom table 'clarobi_entity_auto_increment'
+            $sql = <<<SQL
+SELECT * FROM `cart`
+LEFT JOIN `clarobi_entity_auto_increment` claro ON claro.`entity_token` = cart.`token`
+WHERE claro.`entity_auto_increment` >= :fromId
+    AND DATE(cart.`created_at`) = DATE_SUB(DATE(NOW()), INTERVAL 2 DAY)
+ORDER BY claro.`entity_auto_increment` ASC
+LIMIT 50;
 SQL;
-            $stm = $this->connection->executeQuery($query);
-            $results = $stm->fetchAll();
+            $results = $this->connection->executeQuery(
+                $sql, ['fromId' => $from_id], ['fromId' => ParameterType::INTEGER]
+            )->fetchAll();
 
             $mappedEntities = [];
             $lastId = 0;
@@ -85,7 +93,7 @@ SQL;
                 foreach ($results as $result) {
                     $mappedEntities[] = $this->mapCartEntity($result);
                 }
-                $lastId = ($result ? $result['clarobi_auto_increment'] : 0);
+                $lastId = ($result ? $result['entity_auto_increment'] : 0);
             }
 
             return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::$entityName, $lastId));
@@ -97,8 +105,8 @@ SQL;
     /**
      * Map cart.
      *
-     * @param $cart
-     * @return mixed
+     * @param $result
+     * @return array
      */
     private function mapCartEntity($result)
     {
@@ -108,7 +116,7 @@ SQL;
 
         $mappedKeys = $this->ignoreEntityKeys($cart, self::$entityName, self::$ignoreKeys);
 
-        $mappedKeys['clarobi_auto_increment'] = $result['clarobi_auto_increment'];
+        $mappedKeys['clarobi_auto_increment'] = $result['entity_auto_increment'];
         $mappedKeys['customerId'] = $this->getCustomerAutoIncrement($result['customer_id']);
         $mappedKeys['createdAt'] = $result['created_at'];
         $mappedKeys['salesChannelId'] = Uuid::fromBytesToHex($result['sales_channel_id']);
@@ -121,7 +129,7 @@ SQL;
                 $criteria = new Criteria([$lineItem->getId()]);
 
                 /** @var ProductEntity $product */
-                $product = $this->productRepository->search($criteria, Context::createDefaultContext())->first();
+                $product = $this->productRepository->search($criteria, $this->context)->first();
 
                 $item = $lineItem->jsonSerialize();
                 $item['product'] = $product;
@@ -136,25 +144,18 @@ SQL;
      * Return customer auto_increment from UUID.
      *
      * @param $customerId
-     * @return mixed|null
+     * @return int|null
      */
     private function getCustomerAutoIncrement($customerId)
     {
         if ($customerId) {
-            try {
-                $customerId = Uuid::fromBytesToHex($customerId);
-                $query = <<<SQL
-                        SELECT `auto_increment` FROM `customer`
-                        WHERE customer.`id` = 0x" . $customerId . "
-                        LIMIT 1;
-SQL;
-                $stm = $this->connection->executeQuery($query);
-                $result = $stm->fetchAll();
-                if ($result[0]) {
-                    return $result[0]['auto_increment'];
-                }
-            } catch (DBALException $e) {
-                return null;
+            $customerId = Uuid::fromBytesToHex($customerId);
+            $criteria = new Criteria([$customerId]);
+            $criteria->setLimit(1);
+            /** @var CustomerEntity $customer */
+            $customer = $this->customerRepository->search($criteria, $this->context)->first();
+            if ($customer) {
+                return $customer->getAutoIncrement();
             }
         }
         return null;

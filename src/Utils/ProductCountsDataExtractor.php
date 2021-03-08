@@ -2,7 +2,7 @@
 
 namespace ClarobiClarobi\Utils;
 
-use Shopware\Core\Framework\Context;
+use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\Content\Product\ProductEntity;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Cart\Event\LineItemAddedEvent;
@@ -19,7 +19,7 @@ use Shopware\Core\Checkout\Cart\Event\LineItemQuantityChangedEvent;
 class ProductCountsDataExtractor
 {
     /** @var EntityRepository $entityRespository */
-    protected $entityRespository;
+    protected $entityRepository;
 
     /**
      * ProductCountsDataExtractor constructor.
@@ -28,7 +28,7 @@ class ProductCountsDataExtractor
      */
     public function __construct(EntityRepository $entityRepository)
     {
-        $this->entityRespository = $entityRepository;
+        $this->entityRepository = $entityRepository;
     }
 
     /**
@@ -43,7 +43,7 @@ class ProductCountsDataExtractor
         if ($itemType === LineItem::PRODUCT_LINE_ITEM_TYPE) {
             $itemId = $event->getLineItem()->getId();
             $itemQty = $event->getLineItem()->getQuantity();
-            $itemAutoIncrement = $this->getProductAutoIncrement($itemId);
+            $itemAutoIncrement = $this->getProductAutoIncrement($itemId, $event->getContext());
             $oldQuantity = null;
             if ($changedQuantity) {
                 $oldQuantity = $event->getLineItem()->getPriceDefinition()->getQuantity();
@@ -62,16 +62,17 @@ class ProductCountsDataExtractor
      * Get auto_increment value from product hex_id.
      *
      * @param $itemId
+     * @param SalesChannelContext $context
      * @return int
      */
-    protected function getProductAutoIncrement($itemId)
+    protected function getProductAutoIncrement($itemId, $context)
     {
         $itemAutoIncrement = 0;
 
-        $context = Context::createDefaultContext();
+        $context = $context->getContext(); // Get base context from SalesChannelContext
         $criteria = new Criteria([$itemId]);
         $criteria->setLimit(1);
-        $productColl = $this->entityRespository->search($criteria, $context)->getEntities();
+        $productColl = $this->entityRepository->search($criteria, $context)->getEntities();
 
         /** @var ProductEntity $item */
         foreach ($productColl as $item) {

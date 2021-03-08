@@ -20,21 +20,20 @@ class Migration1585782606 extends MigrationStep
      */
     public function update(Connection $connection): void
     {
-        $query = <<<SQL
-                    CREATE TABLE IF NOT EXISTS `clarobi_product_counts` (
-                        `product_id` BINARY(16) NOT NULL,
-                        `product_auto_increment` INTEGER(11) NOT NULL,
-                        `views` INT DEFAULT 0,
-                        `adds_to_cart` INT DEFAULT 0  ,
-                        `created_at` DATETIME(3) NOT NULL,
-                        `updated_at` DATETIME(3) NULL,
-                        PRIMARY KEY (`product_id`)
-                    ) ENGINE=InnoDB
-                    DEFAULT CHARSET=utf8mb4
-                    COLLATE=utf8mb4_unicode_ci;
-SQL;
-
-        $connection->executeUpdate($query);
+        $connection->executeUpdate("
+            DROP TABLE IF EXISTS `clarobi_product_counts`;
+        ");
+        $connection->executeUpdate("
+            CREATE TABLE IF NOT EXISTS `clarobi_product_counts` (
+                    `product_id` BINARY(16) NOT NULL,
+                    `product_auto_increment` INTEGER(11) NOT NULL,
+                    `views` INT DEFAULT 0,
+                    `adds_to_cart` INT DEFAULT 0  ,
+                    `created_at` DATETIME(3) NOT NULL,
+                    `updated_at` DATETIME(3) NULL,
+                    PRIMARY KEY (`product_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
     }
 
     /**

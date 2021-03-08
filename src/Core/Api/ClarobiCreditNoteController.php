@@ -5,6 +5,7 @@ namespace ClarobiClarobi\Core\Api;
 use Doctrine\DBAL\Connection;
 use ClarobiClarobi\Service\ClarobiConfigService;
 use ClarobiClarobi\Service\EncodeResponseService;
+use Shopware\Core\Checkout\Document\DocumentGenerator\CreditNoteGenerator;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,7 +21,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 class ClarobiCreditNoteController extends ClarobiBaseDocumentController
 {
     protected static $entityName = 'sales_creditnote';
-    protected static $documentType = 'credit_note';
+    protected static $documentType = CreditNoteGenerator::CREDIT_NOTE;
 
     /**
      * ClarobiDocumentsController constructor.
@@ -44,11 +45,13 @@ class ClarobiCreditNoteController extends ClarobiBaseDocumentController
     public function listAction(Request $request)
     {
         try {
+            $this->context = $request->get(self::$contextKey);
+
             $this->verifyParam($request);
             $this->verifyToken($request, $this->config->getConfigs());
             $from_id = $request->get('from_id');
 
-            $this->getDocumentIdsByType(self::$documentType, $from_id);
+            $this->getDocumentIdsByType(parent::$documentEntity,self::$documentType, $from_id);
             $creditNotesCollection = $this->getDocumentCollectionFromIds($this->hexIds);
 
             $mappedEntities = [];
@@ -63,7 +66,7 @@ class ClarobiCreditNoteController extends ClarobiBaseDocumentController
                 }
                 $lastId = $this->incrementIds[$element->getId()];
             }
-
+            return JsonResponse::create($mappedEntities);
             return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::$entityName, $lastId));
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);

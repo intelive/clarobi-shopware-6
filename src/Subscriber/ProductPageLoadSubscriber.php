@@ -42,7 +42,7 @@ class ProductPageLoadSubscriber implements EventSubscriberInterface
     /**
      * @param ProductPageLoadedEvent $event
      */
-    public function onProductProductPageLoaded(ProductPageLoadedEvent $event)
+    public function onProductProductPageLoaded(ProductPageLoadedEvent $event): void 
     {
         /** @var ProductPage $page */
         $page = $event->getPage();

@@ -2,6 +2,7 @@
 
 namespace ClarobiClarobi\Core\Framework\Controller;
 
+use Shopware\Core\Framework\Context;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -13,13 +14,18 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  */
 abstract class ClarobiAbstractController extends AbstractController
 {
+    /** @var Context $context */
+    protected $context;
+
+    protected static $contextKey = 'sw-context';
+
     /**
      * Verify request params.
      *
      * @param Request $request
      * @throws \Exception
      */
-    public function verifyParam(Request $request)
+    public function verifyParam(Request $request): void
     {
         $from_id = $request->get('from_id');
         if (is_null($from_id)) {
@@ -34,7 +40,7 @@ abstract class ClarobiAbstractController extends AbstractController
      * @param $configurations
      * @throws \Exception
      */
-    public function verifyToken(Request $request, $configurations)
+    public function verifyToken(Request $request, $configurations): void
     {
         $headerToken = $request->headers->get('X-Claro-TOKEN');
         if (!$headerToken) {
@@ -57,7 +63,7 @@ abstract class ClarobiAbstractController extends AbstractController
      * @param $entityData
      * @param string $entityName
      * @param array $keysToIgnore
-     * @return mixed
+     * @return array
      */
     public function ignoreEntityKeys($entityData, $entityName, $keysToIgnore)
     {

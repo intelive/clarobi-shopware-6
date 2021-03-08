@@ -6,6 +6,7 @@ use ClarobiClarobi\Service\ClarobiConfigService;
 use ClarobiClarobi\Service\EncodeResponseService;
 use Doctrine\DBAL\Connection;
 use Shopware\Core\Checkout\Document\DocumentEntity;
+use Shopware\Core\Checkout\Document\DocumentGenerator\InvoiceGenerator;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,7 +21,7 @@ use Symfony\Component\Routing\Annotation\Route;
 class ClarobiInvoiceController extends ClarobiBaseDocumentController
 {
     protected static $entityName = 'sales_invoice';
-    protected static $docType = 'invoice';
+    protected static $documentType = InvoiceGenerator::INVOICE;
 
     /**
      * ClarobiDocumentsController constructor.
@@ -44,11 +45,13 @@ class ClarobiInvoiceController extends ClarobiBaseDocumentController
     public function listAction(Request $request)
     {
         try {
+            $this->context = $request->get(self::$contextKey);
+
             $this->verifyParam($request);
             $this->verifyToken($request, $this->config->getConfigs());
             $from_id = $request->get('from_id');
 
-            $this->getDocumentIdsByType(self::$docType, $from_id);
+            $this->getDocumentIdsByType(parent::$documentEntity, self::$documentType, $from_id);
             $invoicesCollection = $this->getDocumentCollectionFromIds($this->hexIds);
 
             $mappedEntities = [];
@@ -60,7 +63,7 @@ class ClarobiInvoiceController extends ClarobiBaseDocumentController
                 }
                 $lastId = $this->incrementIds[$element->getId()];
             }
-
+            return JsonResponse::create($mappedEntities);
             return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::$entityName, $lastId));
         } catch (\Exception $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);

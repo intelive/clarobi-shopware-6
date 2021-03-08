@@ -70,24 +70,24 @@ class ClarobiProductController extends ClarobiAbstractController
      * @RouteScope(scopes={"storefront"})
      * @Route(path="/clarobi/product", name="clarobi.product.list", methods={"GET"})
      */
-    public function listAction(Request $request)
+    public function listAction(Request $request): JsonResponse
     {
         try {
             $this->verifyParam($request);
             $this->verifyToken($request, $this->configService->getConfigs());
             $from_id = $request->get('from_id');
 
-            $context = Context::createDefaultContext();
+            $this->context = $request->get(self::$contextKey);
             $criteria = new Criteria();
             $criteria->setLimit(50)
                 ->addFilter(new RangeFilter('autoIncrement', ['gt' => $from_id]))
                 ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
-                ->addAssociation('options.group.translations')
-                ->addAssociation('properties.group.translations')
-                ->addAssociation('children.options.group.translations');
+                ->addAssociations(['options.group.translations', 'properties.group.translations',
+                    'children.options.group.translations'
+                ]);
 
             /** @var EntityCollection $entities */
-            $entities = $this->productRepository->search($criteria, $context);
+            $entities = $this->productRepository->search($criteria, $this->context);
 
             $mappedEntities = [];
             $lastId = 0;
@@ -121,6 +121,9 @@ class ClarobiProductController extends ClarobiAbstractController
             /** @var ProductEntity $parentProduct */
             $parentProduct = $this->productRepository->search($criteria, Context::createDefaultContext())->first();
             $mappedKeys['parentAutoIncrement'] = $parentProduct->getAutoIncrement();
+            if (is_null($product['name'])) {
+                $mappedKeys['name'] = $parentProduct->getName();
+            }
         } else {
             $mappedKeys['parentAutoIncrement'] = null;
         }

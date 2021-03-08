@@ -3,7 +3,7 @@
 namespace ClarobiClarobi\Utils;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\ParameterType;
 use Shopware\Core\Framework\Uuid\Uuid;
 
 /**
@@ -17,7 +17,6 @@ class ProductCountsDataUpdate
     /** @var Connection $connection */
     private $connection;
 
-    protected static $productCountersTable = 'clarobi_product_counts';
     public static $itemAddition = '+';
     public static $itemSubtraction = '-';
     public static $itemView = 'views';
@@ -45,20 +44,59 @@ class ProductCountsDataUpdate
      */
     public function updateProductCountersTable($productId, $productAutoIncrement, $count, $column, $operation = '+')
     {
-        $date = date('Y-m-d H:i:s', time());
-
-        $sql = "INSERT INTO " . self::$productCountersTable
-            . " (`product_id`, `product_auto_increment`, `{$column}`,`created_at`)
-                VALUES (?,?,?,?)
-                ON DUPLICATE KEY
-                UPDATE `{$column}`  =  `{$column}` {$operation} ?, `updated_at` = ?";
         try {
+            $date = date('Y-m-d H:i:s', time());
             $productIdBinary = Uuid::fromHexToBytes($productId);
-            $this->connection->executeUpdate(
+
+            switch ($column) {
+                case self::$itemView:
+                    $sql = "INSERT IGNORE INTO `clarobi_product_counts`
+                                (`product_id`, `product_auto_increment`, `views`,`created_at`)
+                            VALUES (:productId,:productAutoId, :valueToInsert,:createdAt)";
+                    if ($operation === self::$itemAddition) {
+                        $sql .= "   ON DUPLICATE KEY UPDATE views = views + :increaseWith , `updated_at` = :updatedAt;";
+                    }
+                    break;
+                case self::$itemAddToCart:
+                    $sql = "INSERT IGNORE INTO `clarobi_product_counts`
+                                (`product_id`, `product_auto_increment`, `adds_to_cart`,`created_at`)
+                            VALUES (:productId,:productAutoId, :valueToInsert,:createdAt)
+                            ON DUPLICATE KEY";
+                    switch ($operation) {
+                        case self::$itemAddition:
+                            $sql .= "   UPDATE adds_to_cart = adds_to_cart + :increaseWith , `updated_at` = :updatedAt;";
+                            break;
+                        case self::$itemSubtraction:
+                            $sql .= "   UPDATE adds_to_cart = adds_to_cart - :increaseWith , `updated_at` = :updatedAt;";
+                            break;
+                        default:
+                            return false;
+                    }
+                    break;
+                default:
+                    return false;
+            }
+
+            $this->connection->executeQuery(
                 $sql,
-                [$productIdBinary, $productAutoIncrement, $count, $date, $count, $date]
+                [
+                    'productId' => $productIdBinary,
+                    'productAutoId' => $productAutoIncrement,
+                    'valueToInsert' => $count,
+                    'createdAt' => $date,
+                    'increaseWith' => $count,
+                    'updatedAt' => $date,
+                ],
+                [
+                    'productId' => ParameterType::BINARY,
+                    'productAutoId' => ParameterType::INTEGER,
+                    'valueToInsert' => ParameterType::INTEGER,
+                    'createdAt' => ParameterType::STRING,
+                    'increaseWith' => ParameterType::INTEGER,
+                    'updatedAt' => ParameterType::STRING,
+                ]
             );
-        } catch (DBALException $exception) {
+        } catch (\Exception $exception) {
             return false;
         }
     }

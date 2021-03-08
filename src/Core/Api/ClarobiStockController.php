@@ -2,7 +2,6 @@
 
 namespace ClarobiClarobi\Core\Api;
 
-use Shopware\Core\Framework\Context;
 use ClarobiClarobi\Service\ClarobiConfigService;
 use ClarobiClarobi\Service\EncodeResponseService;
 use Symfony\Component\HttpFoundation\Request;
@@ -58,17 +57,17 @@ class ClarobiStockController extends ClarobiAbstractController
      * @RouteScope(scopes={"storefront"})
      * @Route(path="/clarobi/stock", name="clarobi.stock", methods={"GET"})
      */
-    public function productCountersAction(Request $request)
+    public function productCountersAction(Request $request): JsonResponse
     {
         try {
             $this->verifyToken($request, $this->configService->getConfigs());
 
-            $context = Context::createDefaultContext();
+            $this->context = $request->get(self::$contextKey);
             $criteria = new Criteria();
             $criteria->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING));
 
             /** @var EntityCollection $entities */
-            $entities = $this->productRepository->search($criteria, $context);
+            $entities = $this->productRepository->search($criteria, $this->context);
 
             $stocks = [];
             /** @var ProductEntity $element */

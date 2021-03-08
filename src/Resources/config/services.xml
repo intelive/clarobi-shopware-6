@@ -8,38 +8,52 @@
 
         <!--ProductPageLoadSubscriber-->
         <service id="ClarobiClarobi\Subscriber\ProductPageLoadSubscriber">
-            <argument type="service" id="ClarobiClarobi\Utils\ProductCountsDataUpdate"/>
+            <argument type="service" id="clarobi.product.count.update"/>
             <tag name="kernel.event_subscriber"/>
         </service>
         <!--CartUpdateSubscriber-->
         <service id="ClarobiClarobi\Subscriber\CartUpdateSubscriber">
-            <argument type="service" id="ClarobiClarobi\Utils\ProductCountsDataUpdate"/>
-            <argument type="service" id="ClarobiClarobi\Utils\ProductCountsDataExtractor"/>
+            <argument type="service" id="clarobi.product.count.update"/>
+            <argument type="service" id="clarobi.product.count.extract"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+        <!--CartCreateSubscriber-->
+        <service id="ClarobiClarobi\Subscriber\CartCreateSubscriber">
+            <argument type="service" id="clarobi.auto.increment.helper"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+        <!--DocumentWrittenSubscriber-->
+        <service id="ClarobiClarobi\Subscriber\DocumentWrittenSubscriber">
+            <argument type="service" id="clarobi.auto.increment.helper"/>
             <tag name="kernel.event_subscriber"/>
         </service>
 
         <!--ClarobiConfigService-->
-        <service class="ClarobiClarobi\Service\ClarobiConfigService" id="clarobi.service.config" public="true">
+        <service id="clarobi.service.config" class="ClarobiClarobi\Service\ClarobiConfigService" public="true">
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
         </service>
         <!--EncodeResponseService-->
-        <service class="ClarobiClarobi\Service\EncodeResponseService" id="clarobi.service.encode_response"
+        <service id="clarobi.service.encode_response" class="ClarobiClarobi\Service\EncodeResponseService"
                  public="true">
             <argument id="clarobi.service.config" type="service"/>
         </service>
         <service class="ClarobiClarobi\Service\ClaroConnectorService" id="clarobi.service.connector" public="true"/>
 
         <!--Helpers-->
-        <service id="ClarobiClarobi\Utils\ProductCountsDataUpdate">
+        <service id="clarobi.product.count.update" class="ClarobiClarobi\Utils\ProductCountsDataUpdate">
             <argument type="service" id="Doctrine\DBAL\Connection"/>
         </service>
-        <service id="ClarobiClarobi\Utils\ProductCountsDataExtractor">
+        <service id="clarobi.product.count.extract" class="ClarobiClarobi\Utils\ProductCountsDataExtractor">
             <argument type="service" id="product.repository"/>
         </service>
         <service id="clarobi.product_mapper_helper" class="ClarobiClarobi\Utils\ProductMapperHelper">
+            <argument type="service" id="product.repository"/>
+        </service>
+        <service  id="clarobi.auto.increment.helper" class="ClarobiClarobi\Utils\AutoIncrementHelper">
             <argument type="service" id="Doctrine\DBAL\Connection"/>
         </service>
 
+        <!--ApiTestController-->
         <service id="ClarobiClarobi\Controller\Api\ApiTestController" public="true">
             <argument type="service" id="clarobi.service.connector"/>
             <tag name="controller.service_arguments"/>
@@ -68,14 +82,15 @@
             <argument type="service" id="clarobi.product_mapper_helper"/>
             <tag name="controller.service_arguments"/>
         </service>
-        <!--ClarobiOrderController-->
+        <!--ClarobiAbandonedCartController-->
         <service id="ClarobiClarobi\Core\Api\ClarobiAbandonedCartController" public="true">
             <argument type="service" id="Doctrine\DBAL\Connection"/>
             <argument type="service" id="clarobi.service.config"/>
             <argument type="service" id="clarobi.service.encode_response"/>
             <argument type="service" id="product.repository"/>
+            <argument type="service" id="customer.repository"/>
         </service>
-        <!--ClarobiOrderController-->
+        <!--ClarobiProductCountsController-->
         <service id="ClarobiClarobi\Core\Api\ClarobiProductCountsController" public="true">
             <argument type="service" id="Doctrine\DBAL\Connection"/>
             <argument type="service" id="clarobi.service.config"/>
@@ -90,10 +105,12 @@
         </service>
         <!--ClarobiDataCountersController-->
         <service id="ClarobiClarobi\Core\Api\ClarobiDataCountersController" public="true">
-            <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <argument type="service" id="clarobi.auto.increment.helper"/>
             <argument type="service" id="clarobi.service.config"/>
             <argument type="service" id="product.repository"/>
+            <argument type="service" id="customer.repository"/>
             <argument type="service" id="order.repository"/>
+            <argument type="service" id="document.repository"/>
             <tag name="controller.service_arguments"/>
         </service>
         <!--ClarobiProductImageController-->
@@ -112,6 +129,8 @@
             <argument type="service" id="document.repository"/>
             <argument type="service" id="clarobi.service.config"/>
             <argument type="service" id="clarobi.service.encode_response"/>
+
+            <tag name="controller.service_arguments"/>
         </service>
         <!--ClarobiCreditNoteController-->
         <service id="ClarobiClarobi\Core\Api\ClarobiCreditNoteController" public="true">

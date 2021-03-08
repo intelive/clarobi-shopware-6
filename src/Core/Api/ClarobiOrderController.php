@@ -3,7 +3,6 @@
 namespace ClarobiClarobi\Core\Api;
 
 use ClarobiClarobi\Utils\ProductMapperHelper;
-use Shopware\Core\Framework\Context;
 use ClarobiClarobi\Service\ClarobiConfigService;
 use ClarobiClarobi\Service\EncodeResponseService;
 use Shopware\Core\Checkout\Order\OrderEntity;
@@ -65,34 +64,26 @@ class ClarobiOrderController extends ClarobiAbstractController
     /**
      * @RouteScope(scopes={"storefront"})
      * @Route(path="/clarobi/order", name="clarobi.order.list", methods={"GET"})
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
-    public function listAction(Request $request)
+    public function listAction(Request $request): JsonResponse
     {
         try {
             $this->verifyParam($request);
             $this->verifyToken($request, $this->configService->getConfigs());
             $from_id = $request->get('from_id');
 
-            $context = Context::createDefaultContext();
+            $this->context = $request->get(self::$contextKey);
             $criteria = new Criteria();
             $criteria->setLimit(50)
                 ->addFilter(new RangeFilter('autoIncrement', ['gt' => $from_id]))
                 ->addSorting(new FieldSorting('autoIncrement', FieldSorting::ASCENDING))
-                ->addAssociation('lineItems.product.categories')
-                ->addAssociation('lineItems.product.properties.group.translations')
-                ->addAssociation('lineItems.product.options.group.translations')
-                ->addAssociation('deliveries.shippingMethod')
-                ->addAssociation('addresses.country')
-                ->addAssociation('addresses.countryState')
-                ->addAssociation('transactions.paymentMethod')
-                ->addAssociation('orderCustomer.customer.group')
-                ->addAssociation('currency');
+                ->addAssociations(['lineItems.product.categories', 'lineItems.product.properties.group.translations',
+                    'lineItems.product.options.group.translations', 'deliveries.shippingMethod', 'addresses.country',
+                    'addresses.countryState', 'transactions.paymentMethod', 'orderCustomer.customer.group', 'currency'
+                ]);
 
             /** @var OrderCollection $entities */
-            $entities = $this->orderRepository->search($criteria, $context);
+            $entities = $this->orderRepository->search($criteria, $this->context);
 
             $mappedEntities = [];
             $lastId = 0;
@@ -114,8 +105,7 @@ class ClarobiOrderController extends ClarobiAbstractController
      * Map order entity.
      *
      * @param $order
-     * @return mixed
-     * @throws \Doctrine\DBAL\DBALException
+     * @return array
      */
     private function mapOrderEntity($order)
     {
@@ -142,7 +132,7 @@ class ClarobiOrderController extends ClarobiAbstractController
                 $mappedKeys['shippingAddress'] = $element;
             }
         }
-        $mappedKeys['lineItems'] = $this->mapperHelper->mapOrderLineItems($order);
+        $mappedKeys['lineItems'] = $this->mapperHelper->mapOrderLineItems($order, $this->context);
 
         return $mappedKeys;
     }
