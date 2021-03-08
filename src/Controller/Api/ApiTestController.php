@@ -34,7 +34,7 @@ class ApiTestController
      */
     public function check(Request $request): JsonResponse
     {
-        $currentDomain = $request->getHttpHost();
+        $currentDomain = $request->getHttpHost(); // 192.168.33.10 on localhost
         $success = false;
         if (!empty($currentDomain)) {
             $success = $this->connectorService->startClaroCall($currentDomain);

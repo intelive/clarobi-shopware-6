@@ -20,7 +20,13 @@ Component.register('clarobi-api-test-button', {
 
     computed: {
         pluginConfig() {
-            return this.$parent.$parent.$parent.actualConfigData.null;
+            let config = this.$parent.$parent.$parent.actualConfigData;
+            if (config) {
+                return config.null;
+            }
+
+            // in SW6.3.4 it's one step above
+            return this.$parent.$parent.$parent.$parent.actualConfigData.null;
         }
     },
 
@@ -45,7 +51,10 @@ Component.register('clarobi-api-test-button', {
                     });
                 }
 
-                this.isLoading = false;
+                // this.isLoading = false;
+                setTimeout(() => {
+                    this.isLoading = false;
+                }, 2500);
             });
         }
     }
