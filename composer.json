@@ -1,7 +1,7 @@
 {
     "name": "clarobi/clarobi",
     "description": "Custom APIs for integration with Claro App",
-    "version": "v1.0.0",
+    "version": "v1.0.1",
     "type": "shopware-platform-plugin",
     "keywords": [
         "revenue",
