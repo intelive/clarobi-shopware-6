@@ -5,9 +5,10 @@ namespace ClarobiClarobi\Service;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 
 /**
- * Class ClarobiConfig
+ * Class ClarobiConfigService
  *
  * @package ClarobiClarobi\Service
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ClarobiConfigService
 {

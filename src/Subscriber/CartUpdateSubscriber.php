@@ -13,6 +13,7 @@ use Shopware\Core\Checkout\Cart\Event\LineItemQuantityChangedEvent;
  * Class CartUpdateSubscriber
  *
  * @package ClarobiClarobi\Subscriber
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class CartUpdateSubscriber implements EventSubscriberInterface
 {
@@ -40,6 +41,7 @@ class CartUpdateSubscriber implements EventSubscriberInterface
      */
     public static function getSubscribedEvents()
     {
+        // todo LineItemAddedEvent|LineItemQuantityChangedEventLineItemRemovedEvent @deprecated tag:v6.4.0 - Will implement Shopware\Core\Framework\Event\ShopwareSalesChannelEvent
         return [
             LineItemAddedEvent::class => 'onLineItemAdded',
             LineItemQuantityChangedEvent::class => 'onLineItemQuantityChanged',

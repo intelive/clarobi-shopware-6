@@ -15,6 +15,7 @@ use Shopware\Core\Checkout\Cart\Event\LineItemQuantityChangedEvent;
  * Class ProductCountsDataExtractor
  *
  * @package ClarobiClarobi\Utils
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ProductCountsDataExtractor
 {

@@ -7,10 +7,11 @@ use Doctrine\DBAL\ParameterType;
 use Shopware\Core\Framework\Uuid\Uuid;
 
 /**
- * Class ProductCountsHelper
+ * Class ProductCountsDataUpdate
  * This is called when one of the events take place and product counts table needs to be updated.
  *
  * @package ClarobiClarobi\Utils
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ProductCountsDataUpdate
 {

@@ -21,6 +21,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
  * Class ClarobiCustomerController
  *
  * @package ClarobiClarobi\Core\Api
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ClarobiCustomerController extends ClarobiAbstractController
 {
@@ -95,7 +96,7 @@ class ClarobiCustomerController extends ClarobiAbstractController
             }
 
             return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::$entityName, $lastId));
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
     }

@@ -23,6 +23,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
  * Class ClarobiAbandonedCartController
  *
  * @package ClarobiClarobi\Core\Api
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ClarobiAbandonedCartController extends ClarobiAbstractController
 {
@@ -97,7 +98,7 @@ SQL;
             }
 
             return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::$entityName, $lastId));
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
     }
@@ -107,6 +108,9 @@ SQL;
      *
      * @param $result
      * @return array
+     * @throws \Shopware\Core\Framework\DataAbstractionLayer\Exception\InconsistentCriteriaIdsException
+     * @throws \Shopware\Core\Framework\Uuid\Exception\InvalidUuidException
+     * @throws \Shopware\Core\Framework\Uuid\Exception\InvalidUuidLengthException
      */
     private function mapCartEntity($result)
     {
@@ -145,6 +149,9 @@ SQL;
      *
      * @param $customerId
      * @return int|null
+     * @throws \Shopware\Core\Framework\DataAbstractionLayer\Exception\InconsistentCriteriaIdsException
+     * @throws \Shopware\Core\Framework\Uuid\Exception\InvalidUuidException
+     * @throws \Shopware\Core\Framework\Uuid\Exception\InvalidUuidLengthException
      */
     private function getCustomerAutoIncrement($customerId)
     {

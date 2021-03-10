@@ -7,6 +7,12 @@ use Doctrine\DBAL\DBALException;
 use Shopware\Core\Framework\Plugin;
 use Shopware\Core\Framework\Plugin\Context\UninstallContext;
 
+/**
+ * Class ClarobiClarobi
+ *
+ * @package ClarobiClarobi
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
+ */
 class ClarobiClarobi extends Plugin
 {
     /**

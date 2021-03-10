@@ -24,6 +24,7 @@ use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionColl
  * Class ClarobiOrderController
  *
  * @package ClarobiClarobi\Core\Api
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ClarobiOrderController extends ClarobiAbstractController
 {
@@ -35,6 +36,8 @@ class ClarobiOrderController extends ClarobiAbstractController
     protected $configService;
     /** @var ProductMapperHelper $mapperHelper */
     protected $mapperHelper;
+    /** @var OrderEntity $currentOrder */
+    protected $currentOrder;
 
     protected static $entityName = 'sales_order';
     protected static $ignoreKeys = [
@@ -90,14 +93,17 @@ class ClarobiOrderController extends ClarobiAbstractController
             if ($entities->getElements()) {
                 /** @var OrderEntity $element */
                 foreach ($entities->getElements() as $element) {
+                    $this->currentOrder = $element;
                     $mappedEntities[] = $this->mapOrderEntity($element->jsonSerialize());
                 }
                 $lastId = $element->getAutoIncrement();
             }
 
             return new JsonResponse($this->encoder->encodeResponse($mappedEntities, self::$entityName, $lastId));
-        } catch (\Exception $exception) {
-            return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
+        } catch (\Throwable $exception) {
+            return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage(),
+                'details' => [$this->currentOrder->getId(), $this->currentOrder->getSalesChannel()]
+            ]);
         }
     }
 
@@ -115,23 +121,32 @@ class ClarobiOrderController extends ClarobiAbstractController
         $mappedKeys['status'] = $order['stateMachineState']->getTechnicalName();
         /** @var OrderTransactionCollection $transactions */
         $transactions = $order['transactions'];
-        $mappedKeys['paymentMethod'] = $transactions->last()->getPaymentMethod()->getName();
+        $mappedKeys['paymentMethod'] = (!is_null($transactions) ? $transactions->last()->getPaymentMethod()->getName() : null);
         /** @var OrderDeliveryCollection $deliveries */
         $deliveries = $order['deliveries'];
-        $mappedKeys['shippingDescription'] = $deliveries->last()->getShippingMethod()->getDescription();
 
-        // Get billing and shipping address separate
-        $shippingOrderAddressId = $deliveries->last()->getShippingOrderAddressId();
-        /** @var OrderAddressCollection $addresses */
-        $addresses = $order['addresses'];
-        foreach ($addresses->getElements() as $element) {
-            if ($element->getId() == $order['billingAddressId']) {
-                $mappedKeys['billingAddress'] = $element;
-            }
-            if ($element->getId() == $shippingOrderAddressId) {
-                $mappedKeys['shippingAddress'] = $element;
+        $mappedKeys['shippingDescription'] = null;
+        $mappedKeys['billingAddress'] = null;
+        $mappedKeys['shippingAddress'] = null;
+        if (!is_null($deliveries) && !is_null($deliveries->last())) {
+            $mappedKeys['shippingDescription'] = $deliveries->last()->getShippingMethod()->getDescription();
+
+            // Get billing and shipping address separate
+            $shippingOrderAddressId = $deliveries->last()->getShippingOrderAddressId();
+            /** @var OrderAddressCollection $addresses */
+            $addresses = $order['addresses'];
+            if (!is_null($addresses)) {
+                foreach ($addresses->getElements() as $element) {
+                    if ($element->getId() == $order['billingAddressId']) {
+                        $mappedKeys['billingAddress'] = $element;
+                    }
+                    if ($element->getId() == $shippingOrderAddressId) {
+                        $mappedKeys['shippingAddress'] = $element;
+                    }
+                }
             }
         }
+
         $mappedKeys['lineItems'] = $this->mapperHelper->mapOrderLineItems($order, $this->context);
 
         return $mappedKeys;

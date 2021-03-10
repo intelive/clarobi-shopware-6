@@ -17,6 +17,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
  * Class ClarobiBaseDocumentController
  *
  * @package ClarobiClarobi\Core\Api
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ClarobiBaseDocumentController extends ClarobiAbstractController
 {
@@ -63,6 +64,8 @@ class ClarobiBaseDocumentController extends ClarobiAbstractController
      * @param $specificType
      * @param $from_id
      * @throws \Doctrine\DBAL\DBALException
+     * @throws \Shopware\Core\Framework\Uuid\Exception\InvalidUuidException
+     * @throws \Shopware\Core\Framework\Uuid\Exception\InvalidUuidLengthException
      */
     public function getDocumentIdsByType($type, $specificType, $from_id)
     {
@@ -104,6 +107,7 @@ SQL;
      *
      * @param array $ids
      * @return DocumentEntity[]
+     * @throws \Shopware\Core\Framework\DataAbstractionLayer\Exception\InconsistentCriteriaIdsException
      */
     public function getDocumentCollectionFromIds($ids)
     {

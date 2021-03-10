@@ -5,9 +5,10 @@ namespace ClarobiClarobi\Service;
 use ClarobiClarobi\Utils\EncodeDecode;
 
 /**
- * Class EncodeResponse
+ * Class EncodeResponseService
  *
- * @package ClarobiClarobi\Utils
+ * @package ClarobiClarobi\Service
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class EncodeResponseService
 {
@@ -40,6 +41,7 @@ class EncodeResponseService
      * @param $lastId
      * @param null $type
      * @return array
+     * @throws \Exception
      */
     public function encodeResponse($data, $entityName, $lastId, $type = null)
     {

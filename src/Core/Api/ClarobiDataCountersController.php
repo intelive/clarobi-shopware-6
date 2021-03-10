@@ -5,7 +5,6 @@ namespace ClarobiClarobi\Core\Api;
 use ClarobiClarobi\Utils\AutoIncrementHelper;
 use Doctrine\DBAL\Connection;
 use ClarobiClarobi\Service\ClarobiConfigService;
-use Doctrine\DBAL\DBALException;
 use Shopware\Core\Checkout\Document\DocumentGenerator\CreditNoteGenerator;
 use Shopware\Core\Checkout\Document\DocumentGenerator\InvoiceGenerator;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
@@ -21,6 +20,7 @@ use ClarobiClarobi\Core\Framework\Controller\ClarobiAbstractController;
  * Class ClarobiDataCountersController
  *
  * @package ClarobiClarobi\Core\Api
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ClarobiDataCountersController extends ClarobiAbstractController
 {
@@ -73,7 +73,7 @@ class ClarobiDataCountersController extends ClarobiAbstractController
                 'creditNote' => $this->helper->getDocLastAutoInc(CreditNoteGenerator::CREDIT_NOTE),
                 'abandonedcart' => $this->helper->getLastAbandonedCartId()
             ]);
-        } catch (\Doctrine\DBAL\DBALException $exception) {
+        } catch (\Throwable $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
     }

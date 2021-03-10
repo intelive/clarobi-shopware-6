@@ -4,6 +4,12 @@ namespace ClarobiClarobi\Service;
 
 use GuzzleHttp\Client;
 
+/**
+ * Class ClaroConnectorService
+ *
+ * @package ClarobiClarobi\Service
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
+ */
 class ClaroConnectorService
 {
     private static $claroLicenseStatusEndpoint = 'https://api.clarobi.com/json_index/check-domain';

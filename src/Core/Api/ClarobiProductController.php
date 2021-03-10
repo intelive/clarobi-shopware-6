@@ -2,7 +2,6 @@
 
 namespace ClarobiClarobi\Core\Api;
 
-use Shopware\Core\Framework\Context;
 use ClarobiClarobi\Utils\ProductMapperHelper;
 use ClarobiClarobi\Service\ClarobiConfigService;
 use ClarobiClarobi\Service\EncodeResponseService;
@@ -22,6 +21,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
  * Class ClarobiProductController
  *
  * @package ClarobiClarobi\Core\Api
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ClarobiProductController extends ClarobiAbstractController
 {
@@ -100,7 +100,7 @@ class ClarobiProductController extends ClarobiAbstractController
             }
 
             return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::$entityName, $lastId));
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
     }
@@ -110,6 +110,7 @@ class ClarobiProductController extends ClarobiAbstractController
      *
      * @param $product
      * @return array
+     * @throws \Shopware\Core\Framework\DataAbstractionLayer\Exception\InconsistentCriteriaIdsException
      */
     private function mapProductEntity($product)
     {
@@ -119,7 +120,7 @@ class ClarobiProductController extends ClarobiAbstractController
         if ($product['parentId']) {
             $criteria = new Criteria([$product['parentId']]);
             /** @var ProductEntity $parentProduct */
-            $parentProduct = $this->productRepository->search($criteria, Context::createDefaultContext())->first();
+            $parentProduct = $this->productRepository->search($criteria, $this->context)->first();
             $mappedKeys['parentAutoIncrement'] = $parentProduct->getAutoIncrement();
             if (is_null($product['name'])) {
                 $mappedKeys['name'] = $parentProduct->getName();

@@ -11,6 +11,7 @@ use Shopware\Core\Framework\Uuid\Uuid;
  * Class AutoIncrementHelper
  *
  * @package ClarobiClarobi\Utils
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class AutoIncrementHelper
 {
@@ -36,7 +37,6 @@ class AutoIncrementHelper
      */
     public function createAutoIncrementForEntity($type, $data): void
     {
-        \ChromePhp::info('createAutoIncrementForEntity');
         try {
             switch ($type) {
                 case self::ENTITY_TYPE_CART:

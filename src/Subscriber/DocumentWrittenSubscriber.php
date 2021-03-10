@@ -12,6 +12,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  * Class DocumentWrittenSubscriber
  *
  * @package ClarobiClarobi\Subscriber
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class DocumentWrittenSubscriber implements EventSubscriberInterface
 {

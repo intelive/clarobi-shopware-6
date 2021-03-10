@@ -15,6 +15,7 @@ use ClarobiClarobi\Core\Framework\Controller\ClarobiAbstractController;
  * Class ClarobiProductCountsController
  *
  * @package ClarobiClarobi\Core\Api
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ClarobiProductCountsController extends ClarobiAbstractController
 {
@@ -87,7 +88,7 @@ class ClarobiProductCountsController extends ClarobiAbstractController
                 0,
                 self::$entityType
             ));
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
     }

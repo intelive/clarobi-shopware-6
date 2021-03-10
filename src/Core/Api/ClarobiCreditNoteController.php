@@ -17,6 +17,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
  * Class ClarobiCreditNoteController
  *
  * @package ClarobiClarobi\Core\Api
+ * @author Georgiana Camelia Gitan g.gitan@interlive.ro
  */
 class ClarobiCreditNoteController extends ClarobiBaseDocumentController
 {
@@ -51,7 +52,7 @@ class ClarobiCreditNoteController extends ClarobiBaseDocumentController
             $this->verifyToken($request, $this->config->getConfigs());
             $from_id = $request->get('from_id');
 
-            $this->getDocumentIdsByType(parent::$documentEntity,self::$documentType, $from_id);
+            $this->getDocumentIdsByType(parent::$documentEntity, self::$documentType, $from_id);
             $creditNotesCollection = $this->getDocumentCollectionFromIds($this->hexIds);
 
             $mappedEntities = [];
@@ -66,9 +67,9 @@ class ClarobiCreditNoteController extends ClarobiBaseDocumentController
                 }
                 $lastId = $this->incrementIds[$element->getId()];
             }
-            return JsonResponse::create($mappedEntities);
+
             return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::$entityName, $lastId));
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
     }

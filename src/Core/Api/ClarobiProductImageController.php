@@ -23,6 +23,7 @@ use Shopware\Core\Content\Media\Aggregate\MediaThumbnailSize\MediaThumbnailSizeE
  * Class ClarobiProductImageController
  *
  * @package ClarobiClarobi\Core\Api
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ClarobiProductImageController extends AbstractController
 {
@@ -69,6 +70,8 @@ class ClarobiProductImageController extends AbstractController
     {
         try {
             $id = (int)$request->get('id');
+            $this->context = $request->get(self::$contextKey);
+
             // Insert thumbnail size if not found
             $this->insertThumbnailSize(self::$width);
 
@@ -77,7 +80,6 @@ class ClarobiProductImageController extends AbstractController
                 ->addAssociation('media')
                 ->setLimit(1);
 
-            $this->context = $request->get(self::$contextKey);
             /** @var ProductEntity $product */
             $product = $this->productRepository->search($criteria, $this->context)->first();
             if (!$product) {
@@ -138,7 +140,7 @@ class ClarobiProductImageController extends AbstractController
                 'DefaultImageUrl' => $path
             );
             return new Response($content, 200, $headers);
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             return new Response(self::$error . $exception->getMessage());
         }
     }
@@ -147,6 +149,7 @@ class ClarobiProductImageController extends AbstractController
      * Insert custom thumbnail size in database.
      *
      * @param $thumbnailSize
+     * @throws \Shopware\Core\Framework\DataAbstractionLayer\Exception\InconsistentCriteriaIdsException
      */
     private function insertThumbnailSize($thumbnailSize)
     {
@@ -166,7 +169,7 @@ class ClarobiProductImageController extends AbstractController
             $criteria->addFilter(new EqualsFilter('entity', 'product'))
                 ->addAssociation('folder.configuration');
 
-            /** @var MediaDefaultFolderEntity $mediaDefaultFolderEntity */
+            /** @var MediaDefaultFolderEntity $mediaDefaultFolder */
             $mediaDefaultFolder = $this->mediaDefaultFolderRepository->search($criteria, $this->context)->first();
 
             /** @var MediaFolderEntity $mediaFolder */

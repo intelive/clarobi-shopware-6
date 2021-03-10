@@ -19,6 +19,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
  * Class ClarobiStockController
  *
  * @package ClarobiClarobi\Core\Api
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ClarobiStockController extends ClarobiAbstractController
 {
@@ -89,7 +90,7 @@ class ClarobiStockController extends ClarobiAbstractController
                 0,
                 self::$entityType
             ));
-        } catch (\Exception $exception) {
+        } catch (\Throwable$exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
     }

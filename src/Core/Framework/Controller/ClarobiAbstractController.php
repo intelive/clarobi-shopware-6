@@ -11,6 +11,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * Class ClarobiAbstractController
  *
  * @package ClarobiClarobi\Core\Framework\Controller
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 abstract class ClarobiAbstractController extends AbstractController
 {

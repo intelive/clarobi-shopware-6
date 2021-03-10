@@ -17,6 +17,7 @@ use Symfony\Component\Routing\Annotation\Route;
  * Class ClarobiInvoiceController
  *
  * @package ClarobiClarobi\Core\Api
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ClarobiInvoiceController extends ClarobiBaseDocumentController
 {
@@ -63,9 +64,9 @@ class ClarobiInvoiceController extends ClarobiBaseDocumentController
                 }
                 $lastId = $this->incrementIds[$element->getId()];
             }
-            return JsonResponse::create($mappedEntities);
+
             return new JsonResponse($this->encodeResponse->encodeResponse($mappedEntities, self::$entityName, $lastId));
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             return new JsonResponse(['status' => 'error', 'message' => $exception->getMessage()]);
         }
     }

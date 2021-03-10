@@ -17,6 +17,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
  * Class ProductMapperHelper
  *
  * @package ClarobiClarobi\Utils
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class ProductMapperHelper
 {
@@ -117,39 +118,40 @@ class ProductMapperHelper
         /** @var OrderLineItemEntity $lineItem */
         foreach ($order['lineItems'] as $lineItem) {
             $item = $lineItem->jsonSerialize();
-            if ($lineItem->getType() == 'product') {
+            if ($lineItem->getType() == 'product' && isset($item['product']) && !is_null($item['product'])) {
                 /** @var ProductEntity $product */
                 $product = $item['product'];
+                if ($product instanceof ProductEntity) {
+                    // Unset product to manage less data
+                    unset($item['product']);
 
-                // Unset product to manage less data
-                unset($item['product']);
+                    $options = $this->mapOptionCollection($product->getOptions());
+                    $properties = $this->mapOptionCollection($product->getProperties());
 
-                $options = $this->mapOptionCollection($product->getOptions());
-                $properties = $this->mapOptionCollection($product->getProperties());
-
-                $parentAutoIncrement = $parentProductNumber = null;
-                if ($product->getParentId()) {
-                    $criteria = new Criteria([$product->getParentId()]);
-                    /** @var ProductEntity $parentProduct */
-                    $parentProduct = $this->productRepository->search($criteria, $context)->first();
-                    $parentAutoIncrement = $parentProduct->getAutoIncrement();
-                    $parentProductNumber = $parentProduct->getProductNumber();
+                    $parentAutoIncrement = $parentProductNumber = null;
+                    if ($product->getParentId()) {
+                        $criteria = new Criteria([$product->getParentId()]);
+                        /** @var ProductEntity $parentProduct */
+                        $parentProduct = $this->productRepository->search($criteria, $context)->first();
+                        $parentAutoIncrement = $parentProduct->getAutoIncrement();
+                        $parentProductNumber = $parentProduct->getProductNumber();
+                    }
+                    $item['product'] = [
+                        'autoIncrement' => $product->getAutoIncrement(),
+                        'productNumber' => $product->getProductNumber(),
+                        'childCount' => $product->getChildCount(),
+                        'categories' => ($product->getCategories()->first() ?
+                            $product->getCategories()->first()->getBreadcrumb()
+                            : []
+                        ),
+                        'parent' => [
+                            'autoIncrement' => $parentAutoIncrement,
+                            'productNumber' => $parentProductNumber
+                        ],
+                        'options' => $this->mergeOptionsAndProperties($options, $properties)
+                    ];
+                    $lineItems[] = $item;
                 }
-                $item['product'] = [
-                    'autoIncrement' => $product->getAutoIncrement(),
-                    'productNumber' => $product->getProductNumber(),
-                    'childCount' => $product->getChildCount(),
-                    'categories' => ($product->getCategories()->first() ?
-                        $product->getCategories()->first()->getBreadcrumb()
-                        : []
-                    ),
-                    'parent' => [
-                        'autoIncrement' => $parentAutoIncrement,
-                        'productNumber' => $parentProductNumber
-                    ],
-                    'options' => $this->mergeOptionsAndProperties($options, $properties)
-                ];
-                $lineItems[] = $item;
             }
         }
 

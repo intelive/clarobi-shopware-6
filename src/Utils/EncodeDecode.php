@@ -6,6 +6,7 @@ namespace ClarobiClarobi\Utils;
  * Class EncodeDecode
  *
  * @package ClarobiClarobi\Utils
+ * @author Georgiana Camelia Gitan (g.gitan@interlive.ro)
  */
 class EncodeDecode
 {
